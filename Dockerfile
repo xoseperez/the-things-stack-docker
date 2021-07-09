@@ -11,11 +11,14 @@ RUN mkdir /srv/data
 RUN chmod 777 /srv/data
 VOLUME [ "/srv/data" ]
 
-COPY ttn-lw-stack-docker.yml.template /home/thethings/ttn-lw-stack-docker.yml.template
-COPY entrypoint.sh /home/thethings/entrypoint.sh
-RUN chown thethings:thethings /home/thethings/*
-RUN chmod +x /home/thethings/entrypoint.sh
+WORKDIR /home/thethings
 
-ENTRYPOINT [ "/home/thethings/entrypoint.sh" ]
+COPY ttn-lw-stack-docker.yml.template ./ttn-lw-stack-docker.yml.template
+COPY entrypoint.sh ./entrypoint.sh
+COPY balena.sh ./balena.sh
+RUN chmod +x ./entrypoint.sh
+RUN chown thethings:thethings /home/thethings/*
+
+ENTRYPOINT [ "./entrypoint.sh" ]
 
 USER thethings:thethings
