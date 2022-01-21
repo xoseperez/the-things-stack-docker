@@ -27,8 +27,7 @@ VOLUME [ "/srv/data" ]
 
 WORKDIR /home/thethings
 
-COPY run/* .
-#RUN chmod +x ./entrypoint.sh
+COPY runner/* .
 RUN chown thethings:thethings /home/thethings/*
 
 ENTRYPOINT [ "./entrypoint.sh" ]
