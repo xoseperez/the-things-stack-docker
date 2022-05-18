@@ -32,7 +32,7 @@ services:
         - "127.0.0.1:6379:6379"
   
   stack:
-    image: registry.xoseperez.com/the-things-stack:amd64-latest
+    image: registry/the-things-stack:latest
     container_name: stack
     restart: unless-stopped
     depends_on:
