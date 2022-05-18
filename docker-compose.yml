@@ -9,7 +9,7 @@ volumes:
 services:
 
   postgres:
-    image: postgres:11.12
+    image: postgres:14.3-alpine3.15
     container_name: postgres
     restart: unless-stopped
     environment:
@@ -22,7 +22,7 @@ services:
         - "127.0.0.1:5432:5432"
     
   redis:
-    image: redis:6.2.4-alpine3.13
+    image: redis:7.0.0-alpine3.15
     container_name: redis
     command: redis-server --appendonly yes
     restart: unless-stopped
