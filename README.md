@@ -2,11 +2,14 @@
 
 ![The Things Stack CE for Raspberry Pi](https://raw.githubusercontent.com/xoseperez/the-things-stack-docker/master/resources/logo_small.png)
 
-This project deploys the The Things Stack LoRaWAN Network Server (Open Source Edition) on a Raspberry Pi or equivalent SBC using docker.
+## Introduction
 
-The initial script performs a series of tasks, prior to boot the service. These tasks are:
+This project deploys the The Things Stack LoRaWAN Network Server (Open Source Edition) on a PC, a Raspberry Pi or equivalent SBC using docker.
 
-* Build a configuration file based on environment variables
+Main features:
+
+* Support for AMD64 (x86_64), ARMv8 and ARMv7 architectures.
+* Automatically creates a configuration file based on environment variables
 * Create a self signed certificate
 * Configure the identity database
   * Initialize it
@@ -19,14 +22,26 @@ This is a Work In Progress. It should work just fine for local (LAN) deployments
 
 ### Hardware
 
-* Raspberry Pi 3/4 or [balenaFin](https://www.balena.io/fin/)
-* SD card in case of the RPi 3/4
-* Power supply and (optionally) ethernet cable
+As long as the host can run docker containers, the The Things Stack service can run on:
+
+* AMD64: most PCs out there
+* ARMv8: Raspberry Pi 3/4, 400, Compute Module 3/4, Zero 2 W,...
+* ARMv7: Raspberry Pi 2
+
+> **NOTE**: you will need an OS in the host machine, for some SBC like a Raspberry Pi that means and SD card with an OS (like Rasperry Pi OS) flashed on it.
 
 ### Software
 
-* An image of [Raspberry Pi OS](https://www.raspberrypi.org/software/operating-systems/) or [Ubuntu Server for ARM](https://ubuntu.com/download/raspberry-pi).
-* Docker and docker-compose (see instruction below)
+If you are going to use docker to deploy the project, you will need:
+
+* An OS running your host (Linux or MacOS for AMD64 systems, Raspberry Pi OS, Ubuntu OS for ARM,...)
+* Docker (and optionally docker-compose) on the machine (see below for installation instructions)
+* [balenaEtcher](https://balena.io/etcher) to burn the OS image on the SD card or eMMC for SBC if you have not already done so
+
+If you are going to use this image with Balena, you will need:
+
+* A balenaCloud account ([sign up here](https://dashboard.balena-cloud.com/))
+
 
 ### Network
 
@@ -40,7 +55,7 @@ Check the `Configuring the domain` section below for different options to fulful
 
 ## Deploy
 
-You can use the next `docker-compose.yml` file to configure and run your instance of Basics™ Station. 
+You can use the next `docker-compose.yml` file to configure and run your instance of The Things Stack.
 
 ```
 version: '3.7'
@@ -54,7 +69,7 @@ volumes:
 services:
 
   postgres:
-    image: postgres:11.12
+    image: postgres:14.3-alpine3.15
     container_name: postgres
     restart: unless-stopped
     environment:
@@ -67,7 +82,7 @@ services:
         - "127.0.0.1:5432:5432"
     
   redis:
-    image: redis:6.2.4-alpine3.13
+    image: redis:7.0.0-alpine3.15
     container_name: redis
     command: redis-server --appendonly yes
     restart: unless-stopped
@@ -91,6 +106,10 @@ services:
         TTN_LW_BLOB_LOCAL_DIRECTORY: /srv/ttn-lorawan/public/blob
         TTN_LW_REDIS_ADDRESS: redis:6379
         TTN_LW_IS_DATABASE_URI: postgres://root:root@postgres:5432/ttn_lorawan?sslmode=disable
+        WAIT_HOSTS: redis:6379, postgres:5432
+        WAIT_HOSTS_TIMEOUT: 300
+        WAIT_SLEEP_INTERVAL: 30
+        WAIT_HOST_CONNECT_TIMEOUT: 30
 
     ports:
     
@@ -174,6 +193,8 @@ Variable Name | Value | Description | Default
 **TTS_SUBJECT_STATE** | `STRING` | Self Certificate state | Catalunya
 **TTS_SUBJECT_LOCATION** | `STRING` | Self Certificate city | Barcelona
 **TTS_SUBJECT_ORGANIZATION** | `STRING` | Self Certificate organization | TTN Catalunya
+
+**Note**: the container uses the `wait` tool (https://github.com/ufoscout/docker-compose-wait) to check that Redis and PostgreSQL are running before starting the stack. The **WAIT_\*** environment variables are there to configure this feature.
 
 ## Troubleshooting
 
