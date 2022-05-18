@@ -1,0 +1,31 @@
+name: The Things Stack
+type: sw.application
+description: >-
+  Deploys the The Things Stack LoRaWAN Network Server (Open Source Edition) on a PC, a Raspberry Pi or equivalent SBC
+joinable: false
+post-provisioning: >-
+  For detailed instructions on how to use configure your TTS LNS check out the [readme here](https://github.com/xoseperez/the-things-stack-docker).
+assets:
+  repository:
+    type: blob.asset
+    data:
+      url: 'https://github.com/xoseperez/the-things-stack-docker'
+  logo:
+    type: blob.asset
+    data:
+      url: >-
+        https://raw.githubusercontent.com/xoseperez/the-things-stack-docker/master/resources/logo_small.png
+data:
+  applicationEnvironmentVariables:
+    - TTS_DOMAIN: 192.168.42.1
+  defaultDeviceType: raspberrypi4-64
+  supportedDeviceTypes:
+    - raspberrypi3
+    - raspberrypi3-64
+    - raspberrypi4-64
+    - raspberrypi400-64
+    - raspberrypicm4-ioboard
+    - fincm3
+    - generic
+version: 1.0.3
+~                  
