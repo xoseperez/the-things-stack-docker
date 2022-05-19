@@ -43,6 +43,7 @@ WORKDIR /home/thethings
 # Runner code
 COPY runner/* .
 RUN chown thethings:thethings /home/thethings/*
+RUN chmod +x /home/thethings/*.sh
 
 # Wait tool
 ENV WAIT_VERSION 2.9.0

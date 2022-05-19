@@ -109,6 +109,7 @@ if [ "$CURRENT_SIGNATURE" != "$EXPECTED_SIGNATURE" ]; then
             --id admin \
             --email "${TTS_ADMIN_EMAIL}" \
             --password "${TTS_ADMIN_PASSWORD}"
+            
         ttn-lw-stack -c ${CONFIG_FILE} is-db create-oauth-client \
             --id cli \
             --name "Command Line Interface" \

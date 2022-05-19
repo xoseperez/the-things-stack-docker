@@ -8,15 +8,19 @@ This project deploys the The Things Stack LoRaWAN Network Server (Open Source Ed
 
 Main features:
 
-* Support for AMD64 (x86_64), ARMv8 and ARMv7 architectures.
+* Supports for AMD64 (x86_64), ARMv8 and ARMv7 architectures.
 * Automatically creates a configuration file based on environment variables
-* Create a self signed certificate
-* Configure the identity database
-  * Initialize it
-  * Create an admin
-  * Create oauth clients for the CLI and the console
+* Creates a self signed certificate
+* Configures the identity database
+  * Initializes it
+  * Creates an admin
+  * Creates oauth clients for the CLI and the console
 
-This is a Work In Progress. It should work just fine for local (LAN) deployments, still needs a lot of testing for other environments.
+Based on [The Things Stack](https://hub.docker.com/r/thethingsnetwork/lorawan-stack/) image.
+
+This project is available on Docker Hub (https://hub.docker.com/r/xoseperez/the-things-stack) and GitHub (https://github.com/xoseperez/the-things-stack).
+
+This is a Work In Progress. It is **not meant for production environments** but it should work just fine for local (LAN) deployments.
 
 ## Requirements
 
@@ -133,7 +137,7 @@ services:
         - "1700:1700/udp"
   ```
 
-Modify the `TTS_DOMAIN` environment variables to match your setup. 
+Modify the `TTS_DOMAIN` environment variable to match your setup. 
 
 ## Log in
 
@@ -145,6 +149,12 @@ Point your browser to the first local IP of the device or to the domain name (if
 
 Certificates are recreated if TTS_DOMAIN or any TTS_SUBJECT_* variable below changes.
 Database is reset if TTS_DOMAIN, TTS_ADMIN_EMAIL, TTS_ADMIN_PASSWORD or TTS_CONSOLE_SECRET change.
+
+Alternatively you can run the `reset.sh` script fro within the container and restart it.
+
+```
+docker exec -it stack /home/thethings/reset.sh
+```
 
 ### Configuring the IP and domain
 
