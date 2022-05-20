@@ -15,6 +15,7 @@ Main features:
   * Initializes it
   * Creates an admin
   * Creates oauth clients for the CLI and the console
+* Support for Packet Broker
 
 Based on [The Things Stack](https://hub.docker.com/r/thethingsnetwork/lorawan-stack/) image.
 
@@ -184,6 +185,15 @@ A lns.ttn.cat 192.168.1.25
 
 Then you just have to wait for the domain name to propagate.
 
+### Packet Broker
+
+The Packet Broker is a service provided by The Things Industries (TTI) that allows peering between networks. To use the Pacet Broker you need:
+
+* A NetID provided by the LoRaWAN Alliance or a subrange of addresses from an existing NetID (TTI provides such service)
+* A Packet Broker ID and Secret provided by TTI
+
+If you want to fully integrate your cluster with The Things Network, this can be achieved by configuring TTS_NET_ID to "000013" (NetID owned by The Things Industries) and set the TTS_DEVADDR_RANGE to the range leased from TTI. Then configure the rest of PB_* variables with the info provided by TTI. All these variables must go to the `environment` section in the `stack` service or added as environment variables in the Balena Dashboard.
+
 ### Variables
 
 Variable Name | Value | Description | Default
@@ -205,6 +215,14 @@ Variable Name | Value | Description | Default
 **TTS_SUBJECT_STATE** | `STRING` | Self Certificate state | Catalunya
 **TTS_SUBJECT_LOCATION** | `STRING` | Self Certificate city | Barcelona
 **TTS_SUBJECT_ORGANIZATION** | `STRING` | Self Certificate organization | TTN Catalunya
+**TTS_NET_ID** | `HEX` | Network ID | 000000
+**TTS_DEVADDR_RANGE** | `HEX/INT` | Device address range | 00000000/7
+**PB_HOME_ENABLE** | `true` or `false` | Network is home network from the Packet Broker point of view | `false`
+**PB_FORWARDER_ENABLE** | `true` or `false` | Network is forwarder network from the Packet Broker point of view | `false`
+**PB_HOST** | `STRING` | Packet Broker host address | eu.packetbroker.io:443
+**PB_TENANT_ID** | `STRING` | Tenant ID | Empty if you own the NetID
+**PB_OAUTH_ID** | `STRING` | Packet Broker API key ID | 
+**PB_OAUTH_SECRET** | `STRING` | Packet Broker API secret | 
 
 **Note**: the container uses the `wait` tool (https://github.com/ufoscout/docker-compose-wait) to check that Redis and PostgreSQL are running before starting the stack. The **WAIT_\*** environment variables are there to configure this feature.
 

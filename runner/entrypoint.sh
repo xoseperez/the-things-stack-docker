@@ -30,10 +30,18 @@ TTS_CONSOLE_SECRET=${TTS_CONSOLE_SECRET:-console}
 TTS_DEVICE_CLAIMING_SECRET=${TTS_DEVICE_CLAIMING_SECRET:-device_claiming}
 TTS_METRICS_PASSWORD=${TTS_METRICS_PASSWORD:-metrics}
 TTS_PPROF_PASSWORD=${TTS_PPROF_PASSWORD:-pprof}
+TTS_NET_ID=${TTS_NET_ID:-000000}
+TTS_DEVADDR_RANGE=${TTS_DEVADDR_RANGE:-00000000/7}
+
+PB_HOME_ENABLE=${PB_HOME_ENABLE:-false}
+PB_FORWARDER_ENABLE=${PB_FORWARDER_ENABLE:-false}
+PB_HOST=${PB_HOST:-eu.packetbroker.io:443}
 
 DATA_FOLDER_ESC=$(echo "${DATA_FOLDER}" | sed 's/\//\\\//g')
+TTS_DEVADDR_RANGE_ESC=$(echo "${TTS_DEVADDR_RANGE}" | sed 's/\//\\\//g')
 BLOCK_KEY=$(openssl rand -hex 32)
 HASH_KEY=$(openssl rand -hex 64)
+PB_TOKEN=$(openssl rand -hex 16)
 if [ ! $TTS_SMTP_HOST == "" ]; then
     MAIL_PROVIDER="smtp"
 else
@@ -58,6 +66,15 @@ sed -i -e "s/{{metrics_password}}/${TTS_METRICS_PASSWORD}/g" $CONFIG_FILE
 sed -i -e "s/{{pprof_password}}/${TTS_PPROF_PASSWORD}/g" $CONFIG_FILE
 sed -i -e "s/{{device_claiming_secret}}/${TTS_DEVICE_CLAIMING_SECRET}/g" $CONFIG_FILE
 sed -i -e "s/{{data_folder}}/${DATA_FOLDER_ESC}/g" $CONFIG_FILE
+sed -i -e "s/{{net_id}}/${TTS_NET_ID}/g" $CONFIG_FILE
+sed -i -e "s/{{devaddr_range}}/${TTS_DEVADDR_RANGE_ESC}/g" $CONFIG_FILE
+sed -i -e "s/{{pb_home_enable}}/${PB_HOME_ENABLE}/g" $CONFIG_FILE
+sed -i -e "s/{{pb_forwarder_enable}}/${PB_FORWARDER_ENABLE}/g" $CONFIG_FILE
+sed -i -e "s/{{pb_host}}/${PB_HOST}/g" $CONFIG_FILE
+sed -i -e "s/{{pb_tenant_id}}/${PB_TENANT_ID}/g" $CONFIG_FILE
+sed -i -e "s/{{pb_oauth_id}}/${PB_OAUTH_ID}/g" $CONFIG_FILE
+sed -i -e "s/{{pb_oauth_secret}}/${PB_OAUTH_SECRET}/g" $CONFIG_FILE
+sed -i -e "s/{{pb_token}}/${PB_TOKEN}/g" $CONFIG_FILE
 
 # Certificates are rebuild on subject change
 TTS_SUBJECT_COUNTRY=${TTS_SUBJECT_COUNTRY:-ES}

@@ -56,8 +56,19 @@ tls:
 #    hosts: ['{{domain}}']
 #    default-host: '{{domain}}'
 
+# Network Server configuration
+ns:
+  net-id: '{{net_id}}'
+  dev-addr-prefixes:
+  - '{{devaddr_range}}'
+
 # If Gateway Server enabled, defaults for "{{domain}}":
 gs:
+  forward:
+    # Forward traffic to the Network Server in the cluster
+    - 'cluster={{devaddr_range}}' # Enter your DevAddr range
+    # Forward all traffic also to Packet Broker
+    - 'packetbroker=00000000/0'  
   mqtt:
     public-address: '{{domain}}:1882'
     public-tls-address: '{{domain}}:8882'
@@ -129,3 +140,19 @@ dcs:
       base-url: 'https://{{domain}}/api/v3'
     ns:
       base-url: 'https://{{domain}}/api/v3'
+
+# Packet Broker Agent configuration
+pba:
+  data-plane-address: '{{pb_host}}'
+  net-id: '{{net_id}}'
+  tenant-id: '{{pb_tenant_id}}'
+  cluster-id: '{{domain}}'
+  authentication-mode: 'oauth2'
+  oauth2:
+    client-id: '{{pb_oauth_id}}'
+    client-secret: '{{pb_oauth_secret}}'
+  forwarder:
+    enable: {{pb_forwarder_enable}}
+    token-key: '{{pb_token}}'
+  home-network:
+    enable: {{pb_home_enable}}
