@@ -1,4 +1,4 @@
-version: '3.7'
+version: '2'
 
 volumes:
     redis: 
@@ -32,7 +32,7 @@ services:
         - "127.0.0.1:6379:6379"
   
   stack:
-    image: registry/the-things-stack:latest
+    image: xoseperez/the-things-stack:latest
     container_name: stack
     restart: unless-stopped
     depends_on:
@@ -50,6 +50,8 @@ services:
         WAIT_HOSTS_TIMEOUT: 300
         WAIT_SLEEP_INTERVAL: 30
         WAIT_HOST_CONNECT_TIMEOUT: 30
+    labels:
+        io.balena.features.balena-api: '1'
 
     ports:
     

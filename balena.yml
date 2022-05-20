@@ -1,10 +1,8 @@
 name: The Things Stack
 type: sw.application
-description: >-
-  Deploys the The Things Stack LoRaWAN Network Server (Open Source Edition) on a PC, a Raspberry Pi or equivalent SBC
+description: Deploys the The Things Stack LoRaWAN Network Server (Open Source Edition) on a PC, a Raspberry Pi or equivalent SBC
 joinable: false
-post-provisioning: >-
-  For detailed instructions on how to use configure your TTS LNS check out the [readme here](https://github.com/xoseperez/the-things-stack-docker).
+post-provisioning: For detailed instructions on how to use configure your TTS LNS check out the [readme here](https://github.com/xoseperez/the-things-stack-docker).
 assets:
   repository:
     type: blob.asset
@@ -28,4 +26,3 @@ data:
     - fincm3
     - generic
 version: 1.0.3
-~                  

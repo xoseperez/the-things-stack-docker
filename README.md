@@ -114,6 +114,8 @@ services:
         WAIT_HOSTS_TIMEOUT: 300
         WAIT_SLEEP_INTERVAL: 30
         WAIT_HOST_CONNECT_TIMEOUT: 30
+    labels:
+        io.balena.features.balena-api: '1'
 
     ports:
     
