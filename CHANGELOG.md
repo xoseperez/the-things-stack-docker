@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.4 (2022-05-31)
+
+* Based on The Things Stack v3.19.2
+
 ## 1.0.3 (2022-05-18)
 
 * Based on The Things Stack v3.19.1
