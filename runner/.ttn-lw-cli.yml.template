@@ -1,0 +1,34 @@
+base:
+  config: []
+  log:
+    format: console
+    level: info
+  experimental:
+    features: []
+credentials-id: {{domain}}
+input-format: json
+output-format: json
+allow-unknown-hosts: false
+oauth-server-address: https://{{domain}}/oauth
+identity-server-grpc-address: {{domain}}:8884
+gateway-server-enabled: true
+gateway-server-grpc-address: {{domain}}:8884
+network-server-enabled: true
+network-server-grpc-address: {{domain}}:8884
+application-server-enabled: true
+application-server-grpc-address: {{domain}}:8884
+join-server-enabled: true
+join-server-grpc-address: {{domain}}:8884
+device-template-converter-grpc-address: {{domain}}:8884
+device-claiming-server-grpc-address: {{domain}}:8884
+qr-code-generator-grpc-address: {{domain}}:8884
+packet-broker-agent-grpc-address: {{domain}}:8884
+insecure: false
+ca: /srv/data/ca.pem
+dump-requests: false
+skip-version-check: false
+retry-config:
+  max: 0
+  default_timeout: 100ms
+  enable_metadata: true
+  jitter: 0

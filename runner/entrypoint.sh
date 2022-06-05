@@ -1,5 +1,34 @@
 #!/bin/sh
 
+replace_placeholders() {
+    FILE=$1
+    sed -i -e "s/{{server_name}}/${TTS_SERVER_NAME}/g" $FILE
+    sed -i -e "s/{{admin_email}}/${TTS_ADMIN_EMAIL}/g" $FILE
+    sed -i -e "s/{{noreply_email}}/${TTS_NOREPLY_EMAIL}/g" $FILE
+    sed -i -e "s/{{console_secret}}/${TTS_CONSOLE_SECRET}/g" $FILE
+    sed -i -e "s/{{domain}}/${TTS_DOMAIN}/g" $FILE
+    sed -i -e "s/{{mail_provider}}/${MAIL_PROVIDER}/g" $FILE
+    sed -i -e "s/{{sendgrid_key}}/${TTS_SENDGRID_KEY}/g" $FILE
+    sed -i -e "s/{{smtp_host}}/${TTS_SMTP_HOST}/g" $FILE
+    sed -i -e "s/{{smtp_user}}/${TTS_SMTP_USER}/g" $FILE
+    sed -i -e "s/{{smtp_pass}}/${TTS_SMTP_PASS}/g" $FILE
+    sed -i -e "s/{{block_key}}/${BLOCK_KEY}/g" $FILE
+    sed -i -e "s/{{hash_key}}/${HASH_KEY}/g" $FILE
+    sed -i -e "s/{{metrics_password}}/${TTS_METRICS_PASSWORD}/g" $FILE
+    sed -i -e "s/{{pprof_password}}/${TTS_PPROF_PASSWORD}/g" $FILE
+    sed -i -e "s/{{device_claiming_secret}}/${TTS_DEVICE_CLAIMING_SECRET}/g" $FILE
+    sed -i -e "s/{{data_folder}}/${DATA_FOLDER_ESC}/g" $FILE
+    sed -i -e "s/{{net_id}}/${TTS_NET_ID}/g" $FILE
+    sed -i -e "s/{{devaddr_range}}/${TTS_DEVADDR_RANGE_ESC}/g" $FILE
+    sed -i -e "s/{{pb_home_enable}}/${PB_HOME_ENABLE}/g" $FILE
+    sed -i -e "s/{{pb_forwarder_enable}}/${PB_FORWARDER_ENABLE}/g" $FILE
+    sed -i -e "s/{{pb_host}}/${PB_HOST}/g" $FILE
+    sed -i -e "s/{{pb_tenant_id}}/${PB_TENANT_ID}/g" $FILE
+    sed -i -e "s/{{pb_oauth_id}}/${PB_OAUTH_ID}/g" $FILE
+    sed -i -e "s/{{pb_oauth_secret}}/${PB_OAUTH_SECRET}/g" $FILE
+    sed -i -e "s/{{pb_token}}/${PB_TOKEN}/g" $FILE
+}
+
 # Get local IPs for Balena supervisor if running balena
 if [ "$BALENA_DEVICE_UUID" != "" ]
 then
@@ -19,9 +48,13 @@ echo "------------------------------"
 echo "TTS_DOMAIN: ${TTS_DOMAIN}"
 echo "------------------------------"
 
-# Get configuration
-CONFIG_FILE=/home/thethings/ttn-lw-stack-docker.yml
+# Folders
+HOME_FOLDER=/home/thethings/
 DATA_FOLDER=/srv/data
+STACK_CONFIG_FILE=${HOME_FOLDER}/ttn-lw-stack-docker.yml
+CLI_CONFIG_FILE=${HOME_FOLDER}/.ttn-lw-cli.yml
+
+# Get configuration variables
 TTS_SERVER_NAME=${TTS_SERVER_NAME:-The Things Stack}
 TTS_ADMIN_EMAIL=${TTS_ADMIN_EMAIL:-admin@thethings.example.com}
 TTS_NOREPLY_EMAIL=${TTS_NOREPLY_EMAIL:-noreply@thethings.example.com}
@@ -48,33 +81,13 @@ else
     MAIL_PROVIDER="sendgrid"
 fi
 
-# Build config file
-cp ${CONFIG_FILE}.template ${CONFIG_FILE}
-sed -i -e "s/{{server_name}}/${TTS_SERVER_NAME}/g" $CONFIG_FILE
-sed -i -e "s/{{admin_email}}/${TTS_ADMIN_EMAIL}/g" $CONFIG_FILE
-sed -i -e "s/{{noreply_email}}/${TTS_NOREPLY_EMAIL}/g" $CONFIG_FILE
-sed -i -e "s/{{console_secret}}/${TTS_CONSOLE_SECRET}/g" $CONFIG_FILE
-sed -i -e "s/{{domain}}/${TTS_DOMAIN}/g" $CONFIG_FILE
-sed -i -e "s/{{mail_provider}}/${MAIL_PROVIDER}/g" $CONFIG_FILE
-sed -i -e "s/{{sendgrid_key}}/${TTS_SENDGRID_KEY}/g" $CONFIG_FILE
-sed -i -e "s/{{smtp_host}}/${TTS_SMTP_HOST}/g" $CONFIG_FILE
-sed -i -e "s/{{smtp_user}}/${TTS_SMTP_USER}/g" $CONFIG_FILE
-sed -i -e "s/{{smtp_pass}}/${TTS_SMTP_PASS}/g" $CONFIG_FILE
-sed -i -e "s/{{block_key}}/${BLOCK_KEY}/g" $CONFIG_FILE
-sed -i -e "s/{{hash_key}}/${HASH_KEY}/g" $CONFIG_FILE
-sed -i -e "s/{{metrics_password}}/${TTS_METRICS_PASSWORD}/g" $CONFIG_FILE
-sed -i -e "s/{{pprof_password}}/${TTS_PPROF_PASSWORD}/g" $CONFIG_FILE
-sed -i -e "s/{{device_claiming_secret}}/${TTS_DEVICE_CLAIMING_SECRET}/g" $CONFIG_FILE
-sed -i -e "s/{{data_folder}}/${DATA_FOLDER_ESC}/g" $CONFIG_FILE
-sed -i -e "s/{{net_id}}/${TTS_NET_ID}/g" $CONFIG_FILE
-sed -i -e "s/{{devaddr_range}}/${TTS_DEVADDR_RANGE_ESC}/g" $CONFIG_FILE
-sed -i -e "s/{{pb_home_enable}}/${PB_HOME_ENABLE}/g" $CONFIG_FILE
-sed -i -e "s/{{pb_forwarder_enable}}/${PB_FORWARDER_ENABLE}/g" $CONFIG_FILE
-sed -i -e "s/{{pb_host}}/${PB_HOST}/g" $CONFIG_FILE
-sed -i -e "s/{{pb_tenant_id}}/${PB_TENANT_ID}/g" $CONFIG_FILE
-sed -i -e "s/{{pb_oauth_id}}/${PB_OAUTH_ID}/g" $CONFIG_FILE
-sed -i -e "s/{{pb_oauth_secret}}/${PB_OAUTH_SECRET}/g" $CONFIG_FILE
-sed -i -e "s/{{pb_token}}/${PB_TOKEN}/g" $CONFIG_FILE
+# Create TTS config file
+cp ${STACK_CONFIG_FILE}.template ${STACK_CONFIG_FILE}
+replace_placeholders ${STACK_CONFIG_FILE}
+
+# Create CLI config file
+cp ${CLI_CONFIG_FILE}.template ${CLI_CONFIG_FILE}
+replace_placeholders ${CLI_CONFIG_FILE}
 
 # Certificates are rebuild on subject change
 TTS_SUBJECT_COUNTRY=${TTS_SUBJECT_COUNTRY:-ES}
@@ -118,16 +131,16 @@ EXPECTED_SIGNATURE="$TTS_ADMIN_EMAIL $TTS_ADMIN_PASSWORD $TTS_CONSOLE_SECRET $TT
 CURRENT_SIGNATURE=$(cat ${DATA_FOLDER}/database_signature 2> /dev/null)
 if [ "$CURRENT_SIGNATURE" != "$EXPECTED_SIGNATURE" ]; then
 
-    ttn-lw-stack -c ${CONFIG_FILE} is-db init
+    ttn-lw-stack -c ${STACK_CONFIG_FILE} is-db init
     
     if [ $? -eq 0 ]; then
 
-        ttn-lw-stack -c ${CONFIG_FILE} is-db create-admin-user \
+        ttn-lw-stack -c ${STACK_CONFIG_FILE} is-db create-admin-user \
             --id admin \
             --email "${TTS_ADMIN_EMAIL}" \
             --password "${TTS_ADMIN_PASSWORD}"
             
-        ttn-lw-stack -c ${CONFIG_FILE} is-db create-oauth-client \
+        ttn-lw-stack -c ${STACK_CONFIG_FILE} is-db create-oauth-client \
             --id cli \
             --name "Command Line Interface" \
             --owner admin \
@@ -135,7 +148,7 @@ if [ "$CURRENT_SIGNATURE" != "$EXPECTED_SIGNATURE" ]; then
             --redirect-uri "local-callback" \
             --redirect-uri "code"
 
-        ttn-lw-stack -c ${CONFIG_FILE} is-db create-oauth-client \
+        ttn-lw-stack -c ${STACK_CONFIG_FILE} is-db create-oauth-client \
             --id console \
             --name "Console" \
             --owner admin \
@@ -145,6 +158,14 @@ if [ "$CURRENT_SIGNATURE" != "$EXPECTED_SIGNATURE" ]; then
             --logout-redirect-uri "https://${TTS_DOMAIN}/console" \
             --logout-redirect-uri "/console"
 
+        # Create admin API key and use it to login with the CLI tool
+        if [ "${CLI_AUTO_LOGIN}" == "true" ]; 
+        then
+            API_KEY=$( ttn-lw-stack -c ${STACK_CONFIG_FILE} is-db create-user-api-key | jq '.key' )
+            mkdir -p ${HOME_FOLDER}/.cache/ttn-lw-cli
+            echo "{\"by_id\":{\"${TTS_DOMAIN}\":{\"api_key\":${API_KEY},\"hosts\":[\"${TTS_DOMAIN}\"]}}}" >> ${HOME_FOLDER}/.cache/ttn-lw-cli/cache
+        fi
+        
         echo $EXPECTED_SIGNATURE > ${DATA_FOLDER}/database_signature
 
     fi
@@ -152,9 +173,9 @@ if [ "$CURRENT_SIGNATURE" != "$EXPECTED_SIGNATURE" ]; then
 fi
 
 # Run server
-ttn-lw-stack -c ${CONFIG_FILE} start
+ttn-lw-stack -c ${STACK_CONFIG_FILE} start
 
 # Do not restart so quick
-echo -e "\033[91mERROR: LNS exited, waiting 60 seconds and then rebooting service.\033[0m"
-sleep 60
+echo -e "\033[91mERROR: LNS exited, waiting 30 seconds and then rebooting service.\033[0m"
+sleep 30
 exit 1

@@ -25,4 +25,4 @@ data:
     - raspberrypicm4-ioboard
     - fincm3
     - generic
-version: 1.0.4
+version: 1.0.5

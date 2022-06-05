@@ -216,6 +216,16 @@ A lns.ttn.cat 192.168.1.25
 
 Then you just have to wait for the domain name to propagate.
 
+### CLI Auto Login
+
+The `ttn-lw-cli` is a CLI (Command Line Interface) tool that allows you to create or edit gateways and devices and can be very handly to automate tasks. The tool is included and available from within the container but first step to use it is to configure it (`ttn-lw-cli use <lns_ip>`) and login (`ttn-lw-cli login`). By setting the `CLI_AUTO_LOGIN` variable to `true` these initial steps will be done for you by first creating a API key for the admin user and then using it to pre-login the CLI tool. The default value for the `CLI_AUTO_LOGIN` variable is `false` which means that you will have to perform these step manually.
+
+Either way, manually or automatically, you will be able to run the tool with the usual arguments by typing from the host `docker exec -it stack ttn-lw-cli`. For instance, to create a new gateway you will just have to:
+
+```
+docker exec -it stack ttn-lw-cli gateways create my-gateway-001 --user-id admin  --frequency-plan-id EU_863_870 --gateway-eui --gateway-eui 0011223344556677 --enforce-duty-cycle
+```
+
 ### Packet Broker
 
 The Packet Broker is a service provided by The Things Industries (TTI) that allows peering between networks. To use the Pacet Broker you need:
@@ -254,6 +264,7 @@ Variable Name | Value | Description | Default
 **PB_TENANT_ID** | `STRING` | Tenant ID | Empty if you own the NetID
 **PB_OAUTH_ID** | `STRING` | Packet Broker API key ID | 
 **PB_OAUTH_SECRET** | `STRING` | Packet Broker API secret | 
+**CLI_AUTO_LOGIN** | `true` or `false` | Enable CLI automatic login (see CLI Auto Login section above) | `false`
 
 **Note**: the container uses the `wait` tool (https://github.com/ufoscout/docker-compose-wait) to check that Redis and PostgreSQL are running before starting the stack. The **WAIT_\*** environment variables are there to configure this feature.
 
