@@ -29,6 +29,9 @@ replace_placeholders() {
     sed -i -e "s/{{pb_token}}/${PB_TOKEN}/g" $FILE
 }
 
+# Delay 5s before starting
+sleep 5
+
 # Get local IPs for Balena supervisor if running balena
 if [ "$BALENA_DEVICE_UUID" != "" ]
 then

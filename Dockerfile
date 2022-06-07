@@ -45,11 +45,6 @@ COPY runner/* .
 RUN chown thethings:thethings /home/thethings/*
 RUN chmod +x /home/thethings/*.sh
 
-# Wait tool
-ENV WAIT_VERSION 2.9.0
-ADD https://github.com/ufoscout/docker-compose-wait/releases/download/$WAIT_VERSION/wait /wait
-RUN chmod +x /wait
-
 USER thethings:thethings
 
 ENTRYPOINT [ "./entrypoint.sh" ]
