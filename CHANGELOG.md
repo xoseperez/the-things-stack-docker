@@ -1,8 +1,12 @@
 # Changelog
 
+## 1.0.6 (2022-06-10)
+
+* Fix CLI credentials cache accros reboots
+
 ## 1.0.5 (2022-06-05)
 
-* option to enable CLI auto-login
+* Option to enable CLI auto-login
 
 ## 1.0.4 (2022-05-31)
 
