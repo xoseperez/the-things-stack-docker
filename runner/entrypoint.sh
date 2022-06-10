@@ -161,18 +161,33 @@ if [ "$CURRENT_SIGNATURE" != "$EXPECTED_SIGNATURE" ]; then
             --logout-redirect-uri "https://${TTS_DOMAIN}/console" \
             --logout-redirect-uri "/console"
 
-        # Create admin API key and use it to login with the CLI tool
-        if [ "${CLI_AUTO_LOGIN}" == "true" ]; 
-        then
-            API_KEY=$( ttn-lw-stack -c ${STACK_CONFIG_FILE} is-db create-user-api-key | jq '.key' )
-            mkdir -p ${HOME_FOLDER}/.cache/ttn-lw-cli
-            echo "{\"by_id\":{\"${TTS_DOMAIN}\":{\"api_key\":${API_KEY},\"hosts\":[\"${TTS_DOMAIN}\"]}}}" >> ${HOME_FOLDER}/.cache/ttn-lw-cli/cache
-        fi
-        
         echo $EXPECTED_SIGNATURE > ${DATA_FOLDER}/database_signature
 
     fi
 
+fi
+
+# Create admin API key and use it to login with the CLI tool
+if [ "${CLI_AUTO_LOGIN}" == "true" ]; 
+then
+
+    # Check if there is a cached credentials file
+    if [ -f ${DATA_FOLDER}/cli_auto_login_cache ];
+    then
+
+        # Copy back the cached credentials file
+        mkdir -p ${HOME_FOLDER}/.cache/ttn-lw-cli
+        cp ${DATA_FOLDER}/cli_auto_login_cache ${HOME_FOLDER}/.cache/ttn-lw-cli/cache
+
+    else
+
+        # Create a new API key and credentials file
+        API_KEY=$( ttn-lw-stack -c ${STACK_CONFIG_FILE} is-db create-user-api-key | jq '.key' )
+        mkdir -p ${HOME_FOLDER}/.cache/ttn-lw-cli
+        echo "{\"by_id\":{\"${TTS_DOMAIN}\":{\"api_key\":${API_KEY},\"hosts\":[\"${TTS_DOMAIN}\"]}}}" >> ${HOME_FOLDER}/.cache/ttn-lw-cli/cache
+        cp ${HOME_FOLDER}/.cache/ttn-lw-cli/cache ${DATA_FOLDER}/cli_auto_login_cache
+
+    fi
 fi
 
 # Run server
