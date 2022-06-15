@@ -20,6 +20,7 @@ replace_placeholders() {
     sed -i -e "s/{{data_folder}}/${DATA_FOLDER_ESC}/g" $FILE
     sed -i -e "s/{{net_id}}/${TTS_NET_ID}/g" $FILE
     sed -i -e "s/{{devaddr_range}}/${TTS_DEVADDR_RANGE_ESC}/g" $FILE
+    sed -i -e "s/{{pb_forwarder_prefix}}/${PB_FORWARDER_PREFIX:-}/g" $FILE
     sed -i -e "s/{{pb_home_enable}}/${PB_HOME_ENABLE}/g" $FILE
     sed -i -e "s/{{pb_forwarder_enable}}/${PB_FORWARDER_ENABLE}/g" $FILE
     sed -i -e "s/{{pb_host}}/${PB_HOST}/g" $FILE
@@ -72,6 +73,10 @@ TTS_DEVADDR_RANGE=${TTS_DEVADDR_RANGE:-00000000/7}
 PB_HOME_ENABLE=${PB_HOME_ENABLE:-false}
 PB_FORWARDER_ENABLE=${PB_FORWARDER_ENABLE:-false}
 PB_HOST=${PB_HOST:-eu.packetbroker.io:443}
+if [ "${PB_FORWARDER_ENABLE}" == "false" ]
+then
+    PB_FORWARDER_PREFIX="#"
+fi
 
 DATA_FOLDER_ESC=$(echo "${DATA_FOLDER}" | sed 's/\//\\\//g')
 TTS_DEVADDR_RANGE_ESC=$(echo "${TTS_DEVADDR_RANGE}" | sed 's/\//\\\//g')

@@ -66,7 +66,7 @@ ns:
 gs:
   forward:
     cluster: ["00000000/0"]
-    packetbroker : ["00000000/0"]
+    {{pb_forwarder_prefix}}packetbroker : ["00000000/0"]
   mqtt:
     public-address: '{{domain}}:1882'
     public-tls-address: '{{domain}}:8882'
