@@ -65,10 +65,8 @@ ns:
 # If Gateway Server enabled, defaults for "{{domain}}":
 gs:
   forward:
-    # Forward traffic to the Network Server in the cluster
-    - 'cluster={{devaddr_range}}' # Enter your DevAddr range
-    # Forward all traffic also to Packet Broker
-    - 'packetbroker=00000000/0'  
+    cluster: ["00000000/0"]
+    packetbroker : ["00000000/0"]
   mqtt:
     public-address: '{{domain}}:1882'
     public-tls-address: '{{domain}}:8882'
