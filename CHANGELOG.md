@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.7 (2022-06-15)
+
+* Fix forwarding rules
+* Disable PB forwarding if not connected
+
 ## 1.0.6 (2022-06-10)
 
 * Fix CLI credentials cache accros reboots
