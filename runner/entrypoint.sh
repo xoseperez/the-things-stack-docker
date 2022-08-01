@@ -139,7 +139,7 @@ EXPECTED_SIGNATURE="$TTS_ADMIN_EMAIL $TTS_ADMIN_PASSWORD $TTS_CONSOLE_SECRET $TT
 CURRENT_SIGNATURE=$(cat ${DATA_FOLDER}/database_signature 2> /dev/null)
 if [ "$CURRENT_SIGNATURE" != "$EXPECTED_SIGNATURE" ]; then
 
-    ttn-lw-stack -c ${STACK_CONFIG_FILE} is-db init
+    ttn-lw-stack -c ${STACK_CONFIG_FILE} is-db migrate
     
     if [ $? -eq 0 ]; then
 
@@ -199,6 +199,6 @@ fi
 ttn-lw-stack -c ${STACK_CONFIG_FILE} start
 
 # Do not restart so quick
-echo -e "\033[91mERROR: LNS exited, waiting 30 seconds and then rebooting service.\033[0m"
-sleep 30
+echo -e "\033[91mERROR: LNS exited, waiting 15 seconds and then rebooting service.\033[0m"
+sleep 15
 exit 1
