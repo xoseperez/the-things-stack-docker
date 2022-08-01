@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.8 (2022-08-01)
+
+* Updated to Stack 3.20.2
+
 ## 1.0.7 (2022-06-15)
 
 * Fix forwarding rules
