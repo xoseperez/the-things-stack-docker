@@ -134,14 +134,14 @@ then
     balena_set_label "URL" "https://$TTS_DOMAIN"
 fi
 
-# Database initialization
-EXPECTED_SIGNATURE="$TTS_ADMIN_EMAIL $TTS_ADMIN_PASSWORD $TTS_CONSOLE_SECRET $TTS_DOMAIN"
-CURRENT_SIGNATURE=$(cat ${DATA_FOLDER}/database_signature 2> /dev/null)
-if [ "$CURRENT_SIGNATURE" != "$EXPECTED_SIGNATURE" ]; then
+# Database migration & initialization
+ttn-lw-stack -c ${STACK_CONFIG_FILE} is-db migrate
+if [ $? -eq 0 ]; then
 
-    ttn-lw-stack -c ${STACK_CONFIG_FILE} is-db migrate
-    
-    if [ $? -eq 0 ]; then
+    EXPECTED_SIGNATURE="$TTS_ADMIN_EMAIL $TTS_ADMIN_PASSWORD $TTS_CONSOLE_SECRET $TTS_DOMAIN"
+    CURRENT_SIGNATURE=$(cat ${DATA_FOLDER}/database_signature 2> /dev/null)
+    if [ "$CURRENT_SIGNATURE" != "$EXPECTED_SIGNATURE" ]; then
+
 
         ttn-lw-stack -c ${STACK_CONFIG_FILE} is-db create-admin-user \
             --id admin \
