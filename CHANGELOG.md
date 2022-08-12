@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.0 (2022-08-12)
+
+* Updated to Stack 3.21.0
+* Fix upgrade from previous versions
+
 ## 1.0.8 (2022-08-01)
 
 * Updated to Stack 3.20.2
