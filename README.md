@@ -269,15 +269,29 @@ Variable Name | Value | Description | Default
 
 ### Certificates errors
 
-If you are having certificates problems or "token rejected" message on the TTS website, try regenerating the credentials by changing any of the SUBJECT_* variables. You can also open a terminal to the `stack` service, delete the `/srv/data/certificates_signature` file and restart the stack service.
+If you are having certificates problems or "token rejected" message on the TTS website, try forcing a certificate regeneration:
+
+```
+docker exec stack ./reset_certs.sh
+docker restart stack
+```
+
+If you reset the certs (by running `reset_certs.sh` or changing any of these variables: `TTS_SUBJECT_COUNTRY`, `TTS_SUBJECT_STATE`, `TTS_SUBJECT_LOCATION`, `TTS_SUBJECT_ORGANIZATION` or `TTS_DOMAIN`) you will need to fetch the new certificate to update any gateways connecting to the server using BasicStation:
+
+```
+docker exec stack ./get_certificate.sh
+```
 
 ### Database reset
 
-If the database fails to initialize the best way to force the start script to init it again is to change any of these variables: TTS_ADMIN_EMAIL, TTS_ADMIN_PASSWORD or TTS_CONSOLE_SECRET. You can also open a terminal to the `stack` service, delete the `/srv/data/database_signature` file and restart the stack service.
+If you are having certificates problems or "token rejected" message on the TTS website, try forcing a certificate regeneration:
 
-### Passwords
+```
+docker exec stack ./reset_db.sh
+docker restart stack
+```
 
-When the database is reconfigured (because you change any of the environment variables in the previous point) the passwords for the admin and the console are overwritten. So if you are logged in as admin you will have to logout and login again with the default password.
+When the database is reconfigured (because you ran `reset_db.sh` or changed any of these variables: `TTS_ADMIN_EMAIL`, `TTS_ADMIN_PASSWORD`, `TTS_CONSOLE_SECRET` or `TTS_DOMAIN`) the passwords for the admin and the console are overwritten. So if you are logged in as admin you will have to logout and login again with the default password.
 
 ### Using The Things Stack with BasicStation
 

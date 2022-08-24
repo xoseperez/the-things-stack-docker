@@ -15,7 +15,7 @@ assets:
         https://raw.githubusercontent.com/xoseperez/the-things-stack-docker/master/resources/logo_small.png
 data:
   applicationEnvironmentVariables:
-    - TTS_DOMAIN: 192.168.42.1
+    - TTS_DOMAIN: lns.example.com
   defaultDeviceType: raspberrypi4-64
   supportedDeviceTypes:
     - raspberrypi3
@@ -25,4 +25,4 @@ data:
     - raspberrypicm4-ioboard
     - fincm3
     - generic
-version: 1.0.8
+version: 1.1.1

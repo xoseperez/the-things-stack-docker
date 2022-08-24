@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.1 (2022-08-24)
+
+* Fix common name in certificate creation (might need to recreate certs, see README)
+* Split reset.sh into reset_db.sh and reset_certs.sh
+* Added TTS_PORT
+
 ## 1.1.0 (2022-08-12)
 
 * Updated to Stack 3.21.0
