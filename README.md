@@ -109,7 +109,7 @@ services:
         - 'stack-blob:/srv/ttn-lorawan/public/blob'
         - 'stack-data:/srv/data'
     environment:
-        TTS_DOMAIN: 192.168.42.1        # set this to the IP or domain name of the host you will be using to access the stack
+        TTS_DOMAIN: lns.example.com      # set this to the IP or domain name of the host you will be using to access the stack
         TTN_LW_BLOB_LOCAL_DIRECTORY: /srv/ttn-lorawan/public/blob
         TTN_LW_REDIS_ADDRESS: redis:6379
         TTN_LW_IS_DATABASE_URI: postgres://root:root@postgres:5432/ttn_lorawan?sslmode=disable
@@ -267,11 +267,43 @@ Variable Name | Value | Description | Default
 
 ## Troubleshooting
 
-* If you are having certificates problems or "token rejected" message on the TTS website, try regenerating the credentials by changing any of the SUBJECT_* variables. You can also open a terminal to the `stack` service, delete the `/srv/data/certificates_signature` file and restart the stack service.
+### Certificates errors
 
-* If the database fails to initialize the best way to force the start script to init it again is to change any of these variables: TTS_ADMIN_EMAIL, TTS_ADMIN_PASSWORD or TTS_CONSOLE_SECRET. You can also open a terminal to the `stack` service, delete the `/srv/data/database_signature` file and restart the stack service.
+If you are having certificates problems or "token rejected" message on the TTS website, try regenerating the credentials by changing any of the SUBJECT_* variables. You can also open a terminal to the `stack` service, delete the `/srv/data/certificates_signature` file and restart the stack service.
 
-* When the database is reconfigured (because you change any of the environment variables in the previous point) the passwords for the admin and the console are overwritten. So if you are logged in as admin you will have to logout and login again with the default password.
+### Database reset
+
+If the database fails to initialize the best way to force the start script to init it again is to change any of these variables: TTS_ADMIN_EMAIL, TTS_ADMIN_PASSWORD or TTS_CONSOLE_SECRET. You can also open a terminal to the `stack` service, delete the `/srv/data/database_signature` file and restart the stack service.
+
+### Passwords
+
+When the database is reconfigured (because you change any of the environment variables in the previous point) the passwords for the admin and the console are overwritten. So if you are logged in as admin you will have to logout and login again with the default password.
+
+### Using The Things Stack with BasicStation
+
+When used together (same machine) with the [BasicStation](https://github.com/xoseperez/basicstation) packet forwarder the following matrix will help you identify working combinations.
+
+|BasicStation<br />configuration|If TTS_DOMAIN is<br />an IP|If TTS_DOMAIN is<br />a domain name|
+|---|:-:|:-:|
+|Using localhost: LNS<sup>1</sup>|OK|OK|
+|Using localhost: CUPS<sup>1</sup>|ERROR (Common Name mismatch)|OK<sup>2</sup>|
+|Using localhost: Web UI|OK|OK|
+|Using IP: LNS|ERROR (Common Name mismatch)|ERROR (Common Name mismatch)|
+|Using IP: CUPS|ERROR (CA check fail)|ERROR (CA check fail)|
+|Using IP: Web UI|OK|OK<sup>3</sup>|
+|Using domain name: LNS|ERROR (Common Name mismatch)|OK|
+|Using domain name: CUPS|ERROR (CA check fail)|OK|
+|Using domain name: Web UI|OK<sup>4</sup>|OK|
+
+1. Basicstation in the same machine as TTS and using network_mode host.
+2. Works only if the domain name resolves OK from the basicstation container (CUPS response redirects to `wss://<domain_name>:8887`)
+3. User gets redirected to `https://<domain_name>` after login, hence domain name must resolve to the IP.
+4. User gets redirected to `https://<ip>` after login, hence domain name must resolve to the same IP.
+
+Therefore:
+
+1. **Using a domain name for your machine is the best option. Set `TTS_DOMAIN` to that name. The name should resolve from the same machine and from the network that will be accessing the server. Use the same domain name everywhere.**
+2. If you cannot have a domain name, you can use the IP of the machine as `TTS_DOMAIN`. If your BasicStation container is in the same machine set it to network_mode host and use LNS pointing to `wss://localhost:8887`. CUPS does not work. This is OK for isolated standalone gateways (packet forwarder and network server).
 
 ## TODO
 
