@@ -19,7 +19,7 @@ Main features:
 
 Based on [The Things Stack](https://hub.docker.com/r/thethingsnetwork/lorawan-stack/) image.
 
-This project is available on Docker Hub (https://hub.docker.com/r/xoseperez/the-things-stack) and GitHub (https://github.com/xoseperez/the-things-stack).
+This project is available on Docker Hub (https://hub.docker.com/r/xoseperez/the-things-stack) and GitHub (https://github.com/xoseperez/the-things-stack-docker).
 
 This is a Work In Progress. It is **not meant for production environments** but it should work just fine for local (LAN) deployments.
 
