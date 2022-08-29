@@ -300,24 +300,25 @@ When used together (same machine) with the [BasicStation](https://github.com/xos
 |BasicStation<br />configuration|If TTS_DOMAIN is<br />an IP|If TTS_DOMAIN is<br />a domain name|
 |---|:-:|:-:|
 |Using localhost: LNS<sup>1</sup>|OK|OK|
-|Using localhost: CUPS<sup>1</sup>|ERROR (Common Name mismatch)|OK<sup>2</sup>|
+|Using localhost: CUPS<sup>1</sup>|Works bypassing SNI check<sup>5</sup>|OK<sup>2</sup>|
 |Using localhost: Web UI|OK|OK|
-|Using IP: LNS|ERROR (Common Name mismatch)|ERROR (Common Name mismatch)|
-|Using IP: CUPS|ERROR (CA check fail)|ERROR (CA check fail)|
+|Using IP: LNS|Works bypassing SNI check<sup>5</sup>|Works bypassing SNI check<sup>5</sup>|
+|Using IP: CUPS|Works bypassing SNI check<sup>5</sup>|Works bypassing SNI check<sup>2,5</sup>|
 |Using IP: Web UI|OK|OK<sup>3</sup>|
-|Using domain name: LNS|ERROR (Common Name mismatch)|OK|
-|Using domain name: CUPS|ERROR (CA check fail)|OK|
+|Using domain name: LNS|Works bypassing SNI check<sup>5</sup>|OK|
+|Using domain name: CUPS|Works bypassing SNI check<sup>5</sup>|OK|
 |Using domain name: Web UI|OK<sup>4</sup>|OK|
 
 1. Basicstation in the same machine as TTS and using network_mode host.
 2. Works only if the domain name resolves OK from the basicstation container (CUPS response redirects to `wss://<domain_name>:8887`)
 3. User gets redirected to `https://<domain_name>` after login, hence domain name must resolve to the IP.
 4. User gets redirected to `https://<ip>` after login, hence domain name must resolve to the same IP.
+5. Basicstation service allows to disable server name indication (SNI) check by setting TLS_SNI to `false`. See https://github.com/xoseperez/basicstation/issues/4#issuecomment-1230138180.
 
 Therefore:
 
 1. **Using a domain name for your machine is the best option. Set `TTS_DOMAIN` to that name. The name should resolve from the same machine and from the network that will be accessing the server. Use the same domain name everywhere.**
-2. If you cannot have a domain name, you can use the IP of the machine as `TTS_DOMAIN`. If your BasicStation container is in the same machine set it to network_mode host and use LNS pointing to `wss://localhost:8887`. CUPS does not work. This is OK for isolated standalone gateways (packet forwarder and network server).
+2. If you cannot have a domain name, you can use the IP of the machine as `TTS_DOMAIN` and bypass any possible certificate errors by setting `TLS_SNI` to `false` in your basicstation service. This is OK for private deployments with self-signed certificates.
 
 ## TODO
 
