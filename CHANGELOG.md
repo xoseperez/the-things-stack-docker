@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.2 (2022-09-29)
+
+* Updated to Stack 3.21.2
+
 ## 1.1.1 (2022-08-24)
 
 * Fix common name in certificate creation (might need to recreate certs, see README)
