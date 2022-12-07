@@ -9,7 +9,7 @@ export TAG=$(git rev-parse --short HEAD)
 export VERSION=$(git describe --abbrev=0 --tags)
 export MAJOR=$(git describe --abbrev=0 --tags | cut -d '.' -f1)
 export REGISTRY=${REGISTRY:-"xoseperez/the-things-stack"}
-export REMOTE_TAG=${REMOTE_TAG:-"3.21.2"}
+export REMOTE_TAG=${REMOTE_TAG:-"3.23.0"}
 export BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 # Check we have buildx extension for docker

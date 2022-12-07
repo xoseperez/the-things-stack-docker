@@ -37,7 +37,7 @@ services:
     #    context: .
     #    args:
     #        ARCH: arm
-    #        REMOTE_TAG: 3.21.2
+    #        REMOTE_TAG: 3.23.0
     container_name: stack
     restart: unless-stopped
     depends_on:
