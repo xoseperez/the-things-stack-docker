@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.4 (2022-12-29)
+
+* Updated to Stack 3.23.1
+
 ## 1.1.3 (2022-12-07)
 
 * Updated to Stack 3.23.0
