@@ -103,6 +103,8 @@ console:
       base-url: 'https://{{domain}}:{{port}}/api/v3'
     edtc:
       base-url: 'https://{{domain}}:{{port}}/api/v3'
+    dcs:
+      base-url: 'https://{{domain}}:{{port}}/api/v3'
 
   oauth:
     authorize-url: 'https://{{domain}}:{{port}}/oauth/authorize'
