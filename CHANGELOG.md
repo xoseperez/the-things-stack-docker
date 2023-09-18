@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.6 (2023-09-18)
+
+* Updated to Stack 3.27.2
+
 ## 1.1.5 (2022-12-29)
 
 * Added console.ui.dcs section to ttn-lw-stack-docker (thanks to Davis McCoy for the heads up)

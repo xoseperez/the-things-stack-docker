@@ -1,5 +1,5 @@
 variable "TAG" { default = "latest" }
-variable "REMOTE_TAG" { default = "3.23.1" }
+variable "REMOTE_TAG" { default = "3.27.2" }
 variable "VERSION" { default = "latest" }
 variable "BUILD_DATE" { default = "" }
 variable "REGISTRY" { default = "xoseperez/the-things-stack" }
