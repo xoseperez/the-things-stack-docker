@@ -32,12 +32,12 @@ services:
         - "127.0.0.1:6379:6379"
   
   stack:
-    image: xoseperez/the-things-stack:latest
+    image: xoseperez/the-things-stack:amd64-latest
     #build:
     #    context: .
     #    args:
-    #        ARCH: arm64
-    #        REMOTE_TAG: 3.27.2
+    #        ARCH: amd64
+    #        REMOTE_TAG: 3.28.1
     container_name: stack
     restart: unless-stopped
     depends_on:
