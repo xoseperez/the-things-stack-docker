@@ -18,11 +18,12 @@ data:
     - TTS_DOMAIN: lns.example.com
   defaultDeviceType: raspberrypi4-64
   supportedDeviceTypes:
+    - fincm3
     - raspberrypi3
     - raspberrypi3-64
     - raspberrypi4-64
     - raspberrypi400-64
     - raspberrypicm4-ioboard
-    - fincm3
+    - raspberrypi5
     - generic
-version: 1.1.7
+version: 1.1.8

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.8 (2024-02-09)
+
+* Updated to Stack 3.29.0
+* Fix static image on docker-compose.yml file
+
 ## 1.1.7 (2023-12-18)
 
 * Updated to Stack 3.28.1
