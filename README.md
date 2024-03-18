@@ -1,6 +1,6 @@
 # The Things Stack LoRaWAN Network Server
 
-![The Things Stack CE for Raspberry Pi](https://raw.githubusercontent.com/xoseperez/the-things-stack-docker/master/resources/logo_small.png)
+![The Things Stack CE for Raspberry Pi](https://raw.githubusercontent.com/xoseperez/the-things-stack-docker/master/assets/logo_small.png)
 
 ## Introduction
 

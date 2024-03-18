@@ -12,7 +12,7 @@ assets:
     type: blob.asset
     data:
       url: >-
-        https://raw.githubusercontent.com/xoseperez/the-things-stack-docker/master/resources/logo_small.png
+        https://raw.githubusercontent.com/xoseperez/the-things-stack-docker/master/assets/logo_small.png
 data:
   applicationEnvironmentVariables:
     - TTS_DOMAIN: lns.example.com
