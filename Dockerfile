@@ -3,6 +3,7 @@ ARG VERSION
 ARG BUILD_DATE
 ARG ARCH
 ARG REMOTE_TAG
+ARG CFSSL_ARCH
 
 FROM thethingsnetwork/lorawan-stack:${REMOTE_TAG}
 
@@ -11,6 +12,7 @@ ARG VERSION
 ARG BUILD_DATE
 ARG ARCH
 ARG REMOTE_TAG
+ARG CFSSL_ARCH
 
 # Image metadata
 LABEL maintainer="Xose Pérez <xose.perez@gmail.com>"
@@ -29,8 +31,8 @@ USER root:root
 
 # Certificate creation tools
 RUN apk --update --no-cache add openssl jq
-ADD https://github.com/cloudflare/cfssl/releases/download/1.2.0/cfssl_linux-${ARCH} /usr/bin/cfssl
-ADD https://github.com/cloudflare/cfssl/releases/download/1.2.0/cfssljson_linux-${ARCH} /usr/bin/cfssljson
+ADD https://github.com/cloudflare/cfssl/releases/download/1.2.0/cfssl_linux-${CFSSL_ARCH} /usr/bin/cfssl
+ADD https://github.com/cloudflare/cfssl/releases/download/1.2.0/cfssljson_linux-${CFSSL_ARCH} /usr/bin/cfssljson
 RUN chmod +x /usr/bin/cfssl*
 
 # Data folder
