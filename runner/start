@@ -1,0 +1,308 @@
+#!/bin/sh
+
+VERSION=1.2.0
+
+# -----------------------------------------------------------------------------
+# Colors
+# -----------------------------------------------------------------------------
+
+COLOR_INFO="\e[32m" # green
+COLOR_ERROR="\e[31m" # red
+COLOR_END="\e[0m"
+
+# -----------------------------------------------------------------------------
+# Utils
+# -----------------------------------------------------------------------------
+
+replace_placeholders() {
+    FILE="$1"
+    sed -i -e "s/{{server_name}}/${TTS_SERVER_NAME}/g" "${FILE}"
+    sed -i -e "s/{{admin_email}}/${TTS_ADMIN_EMAIL}/g" "${FILE}"
+    sed -i -e "s/{{noreply_email}}/${TTS_NOREPLY_EMAIL}/g" "${FILE}"
+    sed -i -e "s/{{console_secret}}/${TTS_CONSOLE_SECRET}/g" "${FILE}"
+    sed -i -e "s/{{domain}}/${TTS_DOMAIN}/g" "${FILE}"
+    sed -i -e "s/{{port}}/${TTS_PORT}/g" "${FILE}"
+    sed -i -e "s/{{mail_provider}}/${MAIL_PROVIDER}/g" "${FILE}"
+    sed -i -e "s/{{sendgrid_key}}/${TTS_SENDGRID_KEY}/g" "${FILE}"
+    sed -i -e "s/{{smtp_host}}/${TTS_SMTP_HOST}/g" "${FILE}"
+    sed -i -e "s/{{smtp_user}}/${TTS_SMTP_USER}/g" "${FILE}"
+    sed -i -e "s/{{smtp_pass}}/${TTS_SMTP_PASS}/g" "${FILE}"
+    sed -i -e "s/{{block_key}}/${BLOCK_KEY}/g" "${FILE}"
+    sed -i -e "s/{{hash_key}}/${HASH_KEY}/g" "${FILE}"
+    sed -i -e "s/{{metrics_password}}/${TTS_METRICS_PASSWORD}/g" "${FILE}"
+    sed -i -e "s/{{pprof_password}}/${TTS_PPROF_PASSWORD}/g" "${FILE}"
+    sed -i -e "s/{{device_claiming_secret}}/${TTS_DEVICE_CLAIMING_SECRET}/g" "${FILE}"
+    sed -i -e "s/{{data_folder}}/${DATA_FOLDER_ESC}/g" "${FILE}"
+    sed -i -e "s/{{net_id}}/${TTS_NET_ID}/g" "${FILE}"
+    sed -i -e "s/{{devaddr_range}}/${TTS_DEVADDR_RANGE_ESC}/g" "${FILE}"
+    sed -i -e "s/{{pb_forwarder_prefix}}/${PB_FORWARDER_PREFIX:-}/g" "${FILE}"
+    sed -i -e "s/{{pb_home_enable}}/${PB_HOME_ENABLE}/g" "${FILE}"
+    sed -i -e "s/{{pb_forwarder_enable}}/${PB_FORWARDER_ENABLE}/g" "${FILE}"
+    sed -i -e "s/{{pb_host}}/${PB_HOST}/g" "${FILE}"
+    sed -i -e "s/{{pb_tenant_id}}/${PB_TENANT_ID}/g" "${FILE}"
+    sed -i -e "s/{{pb_oauth_id}}/${PB_OAUTH_ID}/g" "${FILE}"
+    sed -i -e "s/{{pb_oauth_secret}}/${PB_OAUTH_SECRET}/g" "${FILE}"
+    sed -i -e "s/{{pb_token}}/${PB_TOKEN}/g" "${FILE}"
+}
+
+# Code based on https://github.com/vishnubob/wait-for-it
+wait_for_port() {
+
+    WAITFORIT_HOST=$1
+    WAITFORIT_PORT=$2
+    WAITFORIT_TIMEOUT=15
+
+    echo -e "${COLOR_INFO}Waiting for ${WAITFORIT_HOST}:${WAITFORIT_PORT}"
+    
+    WAITFORIT_START_TS=$(date +%s)
+    while :
+    do
+
+        nc -z "${WAITFORIT_HOST}" "${WAITFORIT_PORT}"
+        WAITFORIT_RESULT=$?
+
+        WAITFORIT_END_TS=$(date +%s)
+        WAITFORIT_SECONDS=$(( WAITFORIT_END_TS - WAITFORIT_START_TS ))
+
+        if [ ${WAITFORIT_RESULT} -eq 0 ]; then
+            echo -e "${COLOR_INFO}Connection to ${WAITFORIT_HOST}:${WAITFORIT_PORT} is available after ${WAITFORIT_SECONDS} seconds"
+            break
+        fi
+
+        if [ ${WAITFORIT_TIMEOUT} -gt 0 ] && [ ${WAITFORIT_SECONDS} -gt ${WAITFORIT_TIMEOUT} ]; then
+            echo -e "${COLOR_ERROR}Connection to ${WAITFORIT_HOST}:${WAITFORIT_PORT} timed out"
+            break;
+        fi
+
+        sleep 1
+
+    done
+
+    return "${WAITFORIT_RESULT}"
+
+}
+
+# -----------------------------------------------------------------------------
+# Load Balena specific methods
+# -----------------------------------------------------------------------------
+
+if [ "${BALENA_DEVICE_UUID}" != "" ]
+then
+    # shellcheck source=/dev/null
+    . ./balena.sh
+    IP_LAN=$(balena_get_lan_ip)
+    TTS_DOMAIN=${TTS_DOMAIN:-${IP_LAN%,*}}
+fi
+
+# -----------------------------------------------------------------------------
+# Check required settings
+# -----------------------------------------------------------------------------
+
+# Check domain
+if [ -z "${TTS_DOMAIN}" ]; then
+    echo -e "${COLOR_ERROR}ERROR: TTS_DOMAIN not defined.${COLOR_END}"
+    sleep infinity
+    exit 1
+fi
+
+# -----------------------------------------------------------------------------
+# Wait for Postgres
+# -----------------------------------------------------------------------------
+
+POSTGRES_STRING=$( echo "${TTN_LW_IS_DATABASE_URI}" | sed 's/.*@//' | sed 's/\/.*//' )
+POSTGRES_HOST=$( echo "${POSTGRES_STRING}" | cut -d':' -f1 )
+POSTGRES_PORT=$( echo "${POSTGRES_STRING}" | cut -d':' -f2 )
+wait_for_port "${POSTGRES_HOST}" "${POSTGRES_PORT}" || exit
+
+# -----------------------------------------------------------------------------
+# Debug
+# -----------------------------------------------------------------------------
+
+TTS_VERSION=$( ttn-lw-stack version | grep '^Version:' | awk '{print $2}' )
+
+echo -e "${COLOR_INFO}------------------------------------------------------------------${COLOR_END}"
+echo -e "${COLOR_INFO}The Things Stack Open Source for Docker v${VERSION}${COLOR_END}"
+echo -e "${COLOR_INFO}(c) Xose Pérez 2022-2024${COLOR_END}"
+echo -e ""
+echo -e "${COLOR_INFO}Based on:${COLOR_END}"
+echo -e "${COLOR_INFO} * lorawan-stack ${TTS_VERSION}${COLOR_END}"
+echo -e "${COLOR_INFO}------------------------------------------------------------------${COLOR_END}"
+echo -e "${COLOR_INFO}URL:         https://${TTS_DOMAIN}${COLOR_END}"
+echo -e "${COLOR_INFO}------------------------------------------------------------------${COLOR_END}"
+echo -e
+
+# -----------------------------------------------------------------------------
+# Preparing configuration
+# -----------------------------------------------------------------------------
+
+# Folders
+HOME_FOLDER=/home/thethings/
+DATA_FOLDER=/srv/data
+STACK_CONFIG_FILE=${HOME_FOLDER}/ttn-lw-stack-docker.yml
+CLI_CONFIG_FILE=${HOME_FOLDER}/.ttn-lw-cli.yml
+
+# Get configuration variables
+TTS_PORT=${TTS_PORT:-443}
+TTS_SERVER_NAME=${TTS_SERVER_NAME:-The Things Stack}
+TTS_ADMIN_EMAIL=${TTS_ADMIN_EMAIL:-admin@thethings.example.com}
+TTS_NOREPLY_EMAIL=${TTS_NOREPLY_EMAIL:-noreply@thethings.example.com}
+TTS_ADMIN_PASSWORD=${TTS_ADMIN_PASSWORD:-changeme}
+TTS_CONSOLE_SECRET=${TTS_CONSOLE_SECRET:-console}
+TTS_DEVICE_CLAIMING_SECRET=${TTS_DEVICE_CLAIMING_SECRET:-device_claiming}
+TTS_METRICS_PASSWORD=${TTS_METRICS_PASSWORD:-metrics}
+TTS_PPROF_PASSWORD=${TTS_PPROF_PASSWORD:-pprof}
+TTS_NET_ID=${TTS_NET_ID:-000000}
+TTS_DEVADDR_RANGE=${TTS_DEVADDR_RANGE:-00000000/7}
+
+# Packet forwarder settings
+PB_HOME_ENABLE=${PB_HOME_ENABLE:-false}
+PB_FORWARDER_ENABLE=${PB_FORWARDER_ENABLE:-false}
+PB_HOST=${PB_HOST:-eu.packetbroker.io:443}
+[ "${PB_FORWARDER_ENABLE}" == "false" ] && PB_FORWARDER_PREFIX="#"
+
+DATA_FOLDER_ESC=$(echo "${DATA_FOLDER}" | sed 's/\//\\\//g')
+TTS_DEVADDR_RANGE_ESC=$(echo "${TTS_DEVADDR_RANGE}" | sed 's/\//\\\//g')
+BLOCK_KEY=$(openssl rand -hex 32)
+HASH_KEY=$(openssl rand -hex 64)
+PB_TOKEN=$(openssl rand -hex 16)
+[ -n "${TTS_SMTP_HOST}" ] && MAIL_PROVIDER="smtp" || MAIL_PROVIDER="sendgrid"
+
+# -----------------------------------------------------------------------------
+# Create TTS config file
+# -----------------------------------------------------------------------------
+
+cp "${STACK_CONFIG_FILE}.template" "${STACK_CONFIG_FILE}"
+replace_placeholders "${STACK_CONFIG_FILE}"
+
+# -----------------------------------------------------------------------------
+# Create CLI config file
+# -----------------------------------------------------------------------------
+
+cp "${CLI_CONFIG_FILE}.template" "${CLI_CONFIG_FILE}"
+replace_placeholders "${CLI_CONFIG_FILE}"
+
+# -----------------------------------------------------------------------------
+# Certificates
+# -----------------------------------------------------------------------------
+
+# Certificates are rebuild on subject change
+TTS_SUBJECT_COUNTRY=${TTS_SUBJECT_COUNTRY:-ES}
+TTS_SUBJECT_STATE=${TTS_SUBJECT_STATE:-Catalunya}
+TTS_SUBJECT_LOCATION=${TTS_SUBJECT_LOCATION:-Barcelona}
+TTS_SUBJECT_ORGANIZATION=${TTS_SUBJECT_ORGANIZATION:-TTN Catalunya}
+TTS_DOMAINS=$(echo "${TTS_DOMAIN},localhost,${IP_LAN}" | sed 's/,$//')
+EXPECTED_SIGNATURE="${TTS_SUBJECT_COUNTRY} ${TTS_SUBJECT_STATE} ${TTS_SUBJECT_LOCATION} ${TTS_SUBJECT_ORGANIZATION} ${TTS_DOMAINS}"
+CURRENT_SIGNATURE=$(cat ${DATA_FOLDER}/certificates_signature 2> /dev/null)
+
+if [ "${CURRENT_SIGNATURE}" != "${EXPECTED_SIGNATURE}" ]; then
+
+    cd /tmp || exit
+    
+    echo '{"CN":"'"${TTS_DOMAIN}"'","names":[{"C":"'"${TTS_SUBJECT_COUNTRY}"'","ST":"'"${TTS_SUBJECT_STATE}"'","L":"'"${TTS_SUBJECT_LOCATION}"'","O":"'"${TTS_SUBJECT_ORGANIZATION}"'"}],"key":{"algo":"rsa","size":2048}}' > ca.json
+    cfssl genkey -initca ca.json | cfssljson -bare ca
+
+    echo '{"CN":"'"${TTS_DOMAIN}"'","hosts":["'"$(echo "${TTS_DOMAINS}" | sed 's/,/\",\"/g')"'"],"names":[{"C":"'"${TTS_SUBJECT_COUNTRY}"'","ST":"'"${TTS_SUBJECT_STATE}"'","L":"'"${TTS_SUBJECT_LOCATION}"'","O":"'"${TTS_SUBJECT_ORGANIZATION}"'"}],"key":{"algo":"rsa","size":2048}}' > cert.json
+    cfssl gencert -hostname "${TTS_DOMAINS}" -ca ca.pem -ca-key ca-key.pem cert.json | cfssljson -bare cert
+
+    cp ca.pem "${DATA_FOLDER}/ca.pem"
+    cp ca-key.pem "${DATA_FOLDER}/ca-key.pem"
+    cp cert.pem "${DATA_FOLDER}/cert.pem"
+    cp cert-key.pem "${DATA_FOLDER}/key.pem"
+
+    chown 886:886 "${DATA_FOLDER}/cert.pem" "${DATA_FOLDER}/key.pem"
+
+    echo "${EXPECTED_SIGNATURE}" > "${DATA_FOLDER}/certificates_signature"
+
+    cd - || exit
+
+fi
+
+# -----------------------------------------------------------------------------
+# Database migration & initialization
+# -----------------------------------------------------------------------------
+
+ttn-lw-stack -c "${STACK_CONFIG_FILE}" is-db migrate
+if [ $? -eq 0 ]; then
+
+    EXPECTED_SIGNATURE="${TTS_ADMIN_EMAIL} ${TTS_ADMIN_PASSWORD} ${TTS_CONSOLE_SECRET} ${TTS_DOMAIN}"
+    CURRENT_SIGNATURE=$( cat "${DATA_FOLDER}/database_signature" 2> /dev/null )
+    if [ "${CURRENT_SIGNATURE}" != "${EXPECTED_SIGNATURE}" ]; then
+
+
+        ttn-lw-stack -c "${STACK_CONFIG_FILE}" is-db create-admin-user \
+            --id admin \
+            --email "${TTS_ADMIN_EMAIL}" \
+            --password "${TTS_ADMIN_PASSWORD}"
+            
+        ttn-lw-stack -c "${STACK_CONFIG_FILE}" is-db create-oauth-client \
+            --id cli \
+            --name "Command Line Interface" \
+            --owner admin \
+            --no-secret \
+            --redirect-uri "local-callback" \
+            --redirect-uri "code"
+
+        ttn-lw-stack -c "${STACK_CONFIG_FILE}" is-db create-oauth-client \
+            --id console \
+            --name "Console" \
+            --owner admin \
+            --secret "${TTS_CONSOLE_SECRET}" \
+            --redirect-uri "https://${TTS_DOMAIN}/console/oauth/callback" \
+            --redirect-uri "/console/oauth/callback" \
+            --logout-redirect-uri "https://${TTS_DOMAIN}/console" \
+            --logout-redirect-uri "/console"
+
+        echo "${EXPECTED_SIGNATURE}" > "${DATA_FOLDER}/database_signature"
+
+    fi
+
+fi
+
+# -----------------------------------------------------------------------------
+# CLI auto-login
+# -----------------------------------------------------------------------------
+
+# Create admin API key and use it to login with the CLI tool
+if [ "${CLI_AUTO_LOGIN}" = "true" ]; then
+
+    # Check if there is a cached credentials file
+    if [ -f "${DATA_FOLDER}/cli_auto_login_cache" ]; then
+
+        # Copy back the cached credentials file
+        mkdir -p "${HOME_FOLDER}/.cache/ttn-lw-cli"
+        cp "${DATA_FOLDER}/cli_auto_login_cache" "${HOME_FOLDER}/.cache/ttn-lw-cli/cache"
+
+    else
+
+        # Create a new API key and credentials file
+        API_KEY=$( ttn-lw-stack -c "${STACK_CONFIG_FILE}" is-db create-user-api-key | jq '.key' )
+        mkdir -p "${HOME_FOLDER}/.cache/ttn-lw-cli"
+        echo "{\"by_id\":{\"${TTS_DOMAIN}\":{\"api_key\":${API_KEY},\"hosts\":[\"${TTS_DOMAIN}\"]}}}" >> "${HOME_FOLDER}/.cache/ttn-lw-cli/cache"
+        cp "${HOME_FOLDER}/.cache/ttn-lw-cli/cache" "${DATA_FOLDER}/cli_auto_login_cache"
+
+    fi
+fi
+
+# -----------------------------------------------------------------------------
+# Update Balena labels
+# -----------------------------------------------------------------------------
+
+# We populate the TC_TRUST and TC_URI for a possible Balena BasicStation service running on the same machine
+if [ -n "${BALENA_DEVICE_UUID}" ]; then
+    TC_TRUST=$( cat "${DATA_FOLDER}/ca.pem" )
+    TC_TRUST=$( echo "${TC_TRUST}" | sed "//$'\n'/g" )
+    balena_set_variable "TC_TRUST" "${TC_TRUST}"
+    balena_set_variable "TC_URI" "wss://localhost:8887"
+    balena_set_label "URL" "https://${TTS_DOMAIN}"
+fi
+
+# -----------------------------------------------------------------------------
+# Run server
+# -----------------------------------------------------------------------------
+
+ttn-lw-stack -c "${STACK_CONFIG_FILE}" start
+
+# Do not restart so quick
+echo -e "${COLOR_ERROR}ERROR: LNS exited, waiting 15 seconds and then rebooting service.${COLOR_END}"
+sleep 15
+exit 1

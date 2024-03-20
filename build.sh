@@ -49,7 +49,7 @@ VERSION=$(git describe --abbrev=0 --tags)
 MAJOR=$(git describe --abbrev=0 --tags | cut -d '.' -f1)
 BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 REGISTRY=${REGISTRY:-"xoseperez/the-things-stack"}
-REMOTE_TAG=${REMOTE_TAG:-"3.29.0"}
+REMOTE_TAG=${REMOTE_TAG:-"3.29.1"}
 
 export TAG
 export VERSION

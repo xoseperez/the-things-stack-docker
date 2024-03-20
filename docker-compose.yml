@@ -12,6 +12,11 @@ services:
     image: postgres:14.3-alpine3.15
     container_name: postgres
     restart: unless-stopped
+    healthcheck:
+        test: /usr/bin/pg_isready
+        interval: 2s
+        timeout: 10s
+        retries: 120
     environment:
         - POSTGRES_PASSWORD=root
         - POSTGRES_USER=root
@@ -33,11 +38,11 @@ services:
   
   stack:
     image: xoseperez/the-things-stack:latest
-    #build:
-    #    context: .
-    #    args:
-    #        ARCH: amd64
-    #        REMOTE_TAG: 3.29.0
+    build:
+        context: .
+        args:
+            ARCH: amd64
+            REMOTE_TAG: 3.29.1
     container_name: stack
     restart: unless-stopped
     depends_on:
@@ -47,11 +52,11 @@ services:
         - 'stack-blob:/srv/ttn-lorawan/public/blob'
         - 'stack-data:/srv/data'
     environment:
-        TTS_DOMAIN: lns.example.com      # set this to the IP or domain name of the host you will be using to access the stack
+        TTS_DOMAIN: lns03.xoseperez.com
         TTN_LW_BLOB_LOCAL_DIRECTORY: /srv/ttn-lorawan/public/blob
         TTN_LW_REDIS_ADDRESS: redis:6379
         TTN_LW_IS_DATABASE_URI: postgres://root:root@postgres:5432/ttn_lorawan?sslmode=disable
-        CLI_AUTO_LOGIN: "false"
+        CLI_AUTO_LOGIN: "true"
     labels:
         io.balena.features.balena-api: '1'
 

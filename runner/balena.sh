@@ -1,11 +1,13 @@
-BALENA_DEVICE_DATA=$(curl -sX GET "https://api.balena-cloud.com/v6/device?\$filter=uuid%20eq%20'$BALENA_DEVICE_UUID'" \
-        -H "Content-Type: application/json" \
-        -H "Authorization: Bearer $BALENA_API_KEY")
+#!/bin/sh
 
-BALENA_ID=$(echo $BALENA_DEVICE_DATA | jq ".d | .[0] | .id")
+BALENA_DEVICE_DATA=$(curl -sX GET "https://api.balena-cloud.com/v6/device?\$filter=uuid%20eq%20'${BALENA_DEVICE_UUID}'" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer ${BALENA_API_KEY}")
+
+BALENA_ID=$( echo "${BALENA_DEVICE_DATA}" | jq ".d | .[0] | .id" )
 
 balena_get_lan_ip() {
-    echo $BALENA_DEVICE_DATA | jq ".d | .[0] | .ip_address" | sed 's/"//g' | sed 's/ /,/g'
+    echo "${BALENA_DEVICE_DATA}" | jq ".d | .[0] | .ip_address" | sed 's/"//g' | sed 's/ /,/g'
 }
 
 balena_set_variable() {
@@ -13,23 +15,23 @@ balena_set_variable() {
     NAME=$1
     VALUE=$2
     
-    VARIABLE_ID=$(curl -sX GET "https://api.balena-cloud.com/v6/device_environment_variable" -H "Content-Type: application/json" -H "Authorization: Bearer $BALENA_API_KEY" | jq '.d | .[] | select(.name == "'$NAME'") | .id')
+    VARIABLE_ID=$( curl -sX GET "https://api.balena-cloud.com/v6/device_environment_variable" -H "Content-Type: application/json" -H "Authorization: Bearer ${BALENA_API_KEY}" | jq '.d | .[] | select(.name == "'"${NAME}"'") | .id' )
     
-    if [ "$VARIABLE_ID" == "" ]; then
+    if [ -z "${VARIABLE_ID}" ]; then
 
         curl -sX POST \
             "https://api.balena-cloud.com/v6/device_environment_variable" \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $BALENA_API_KEY" \
-            --data "{\"device\": \"$BALENA_ID\",\"name\": \"$NAME\",\"value\": \"$VALUE\"}" 2> /dev/null
+            -H "Authorization: Bearer ${BALENA_API_KEY}" \
+            --data "{\"device\": \"$BALENA_ID\",\"name\": \"${NAME}\",\"value\": \"${VALUE}\"}" >/dev/null 2>&1
 
     else
 
-        curl -X PATCH \
+        curl -sX PATCH \
             "https://api.balena-cloud.com/v6/device_environment_variable($VARIABLE_ID)" \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $BALENA_API_KEY" \
-            --data "{\"value\": \"$VALUE\"}" 2> /dev/null
+            -H "Authorization: Bearer ${BALENA_API_KEY}" \
+            --data "{\"value\": \"${VALUE}\"}" >/dev/null 2>&1
 
     fi
 
@@ -40,23 +42,22 @@ balena_set_label() {
     NAME=$1
     VALUE=$2
 
-    TAG_ID=$(curl -sX GET "https://api.balena-cloud.com/v6/device_tag" -H "Content-Type: application/json" -H "Authorization: Bearer $BALENA_API_KEY" | jq '.d | .[] | select(.tag_key == "'$NAME'") | .id')
-
-    if [ "$TAG_ID" == "" ]; then
+    TAG_ID=$( curl -sX GET "https://api.balena-cloud.com/v6/device_tag" -H "Content-Type: application/json" -H "Authorization: Bearer ${BALENA_API_KEY}" | jq '.d | .[] | select(.tag_key == "'"${NAME}"'") | .id' )
+    if [ -z "${TAG_ID}" ]; then
 
         curl -sX POST \
             "https://api.balena-cloud.com/v6/device_tag" \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $BALENA_API_KEY" \
-            --data "{\"device\": \"$BALENA_ID\",\"tag_key\": \"$NAME\",\"value\": \"$VALUE\"}" 2> /dev/null
+            -H "Authorization: Bearer ${BALENA_API_KEY}" \
+            --data "{\"device\": \"$BALENA_ID\",\"tag_key\": \"${NAME}\",\"value\": \"${VALUE}\"}" >/dev/null 2>&1
 
     else
 
-        curl -X PATCH \
+        curl -sX PATCH \
             "https://api.balena-cloud.com/v6/device_tag($TAG_ID)" \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $BALENA_API_KEY" \
-            --data "{\"value\": \"$VALUE\"}" 2> /dev/null
+            -H "Authorization: Bearer ${BALENA_API_KEY}" \
+            --data "{\"value\": \"${VALUE}\"}" >/dev/null 2>&1
 
     fi
 

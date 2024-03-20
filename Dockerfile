@@ -3,7 +3,7 @@ ARG VERSION
 ARG BUILD_DATE
 ARG ARCH
 ARG REMOTE_TAG
-ARG CFSSL_ARCH
+ARG CFSSL_ARCH=${ARCH}
 
 FROM thethingsnetwork/lorawan-stack:${REMOTE_TAG}
 
@@ -42,11 +42,9 @@ VOLUME [ "/srv/data" ]
 
 WORKDIR /home/thethings
 
-# Runner code
 COPY runner/* .
-RUN chown thethings:thethings /home/thethings/*
-RUN chmod +x /home/thethings/*.sh
-
+RUN chmod +x start get_trust_certificate reset_certificates reset_database
+ENV PATH="${PATH}:/home/thethings"
 USER thethings:thethings
 
-ENTRYPOINT [ "./entrypoint.sh" ]
+ENTRYPOINT [ "sh", "start" ]

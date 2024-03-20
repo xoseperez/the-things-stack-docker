@@ -1,8 +1,13 @@
 # Changelog
 
+## 1.2.0 (2024-03-19)
+
+* Updated to Stack 3.29.1
+* Code clean up
+* Faster boot time (checks for PostgreSQL connection)
+
 ## 1.1.8 (2024-02-09)
 
-* Updated to Stack 3.29.0
 * Fix static image on docker-compose.yml file
 
 ## 1.1.7 (2023-12-18)

@@ -1,0 +1,9 @@
+#!/bin/sh
+
+DATA_FOLDER=/srv/data
+CA_FILE="${DATA_FOLDER}/ca.pem"
+if [ -f "${CA_FILE}" ]; then
+    cat "${CA_FILE}"
+else 
+    echo "Trust certificate not yet available, wait a few seconds and request it again"
+fi
