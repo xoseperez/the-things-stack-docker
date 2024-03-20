@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.0 (2024-03-19)
+## 1.2.0 (2024-03-20)
 
 * Updated to Stack 3.29.1
 * Code clean up
