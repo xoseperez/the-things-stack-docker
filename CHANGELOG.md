@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.1 (2024-03-28)
+
+* Updated to Stack 3.29.2
+
 ## 1.2.0 (2024-03-20)
 
 * Updated to Stack 3.29.1

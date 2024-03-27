@@ -2,7 +2,7 @@ variable "TAG" { default = "latest" }
 variable "VERSION" { default = "latest" }
 variable "BUILD_DATE" { default = "" }
 variable "REGISTRY" { default = "xoseperez/the-things-stack" }
-variable "REMOTE_TAG" { default = "3.29.1" }
+variable "REMOTE_TAG" { default = "3.29.2" }
 
 group "default" {
     targets = ["armv7hf", "aarch64", "amd64"]
