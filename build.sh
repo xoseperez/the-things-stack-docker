@@ -91,6 +91,7 @@ fi
 
 if [[ ${PUSH} -eq 1 ]] && [[ ${#TARGETS[@]} -eq 0 ]]; then
 
+    # Full image
     cat > ${MANIFEST_FILE} << EOL
 image: ${REGISTRY}:${TAG}
 tags: ['${VERSION}', '${MAJOR}', 'latest']
@@ -104,6 +105,28 @@ manifests:
       architecture: arm
       os: linux  
   - image: ${REGISTRY}:amd64-latest
+    platform:
+      architecture: amd64
+      os: linux  
+EOL
+
+    ${MANIFEST_TOOL} push from-spec ${MANIFEST_FILE}
+    rm ${MANIFEST_FILE}
+
+    # Lite image
+    cat > ${MANIFEST_FILE} << EOL
+image: ${REGISTRY}:${TAG}-lite
+tags: ['${VERSION}-lite', '${MAJOR}-lite', 'lite']
+manifests:
+  - image: ${REGISTRY}:aarch64-latest-lite
+    platform:
+      architecture: arm64
+      os: linux  
+  - image: ${REGISTRY}:armv7hf-latest-lite
+    platform:
+      architecture: arm
+      os: linux  
+  - image: ${REGISTRY}:amd64-latest-lite
     platform:
       architecture: amd64
       os: linux  
