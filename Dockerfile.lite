@@ -1,0 +1,80 @@
+ARG TAG
+ARG VERSION
+ARG BUILD_DATE
+ARG ARCH
+ARG REMOTE_TAG
+ARG CFSSL_ARCH=${ARCH}
+
+FROM thethingsnetwork/lorawan-stack:${REMOTE_TAG} as builder
+
+USER root:root
+RUN rm -rf /srv/ttn-lorawan/lorawan-devices-index && \ 
+    mkdir -p data/lorawan-devices/vendor && \
+    echo "vendors:" > data/lorawan-devices/vendor/index.yaml && \
+    ttn-lw-stack dr-db init
+
+FROM alpine:3.19 as runner
+
+ARG TAG
+ARG VERSION
+ARG BUILD_DATE
+ARG ARCH
+ARG REMOTE_TAG
+ARG CFSSL_ARCH
+
+# Image metadata
+LABEL maintainer="Xose Pérez <xose.perez@gmail.com>"
+LABEL org.label-schema.schema-version="1.0"
+LABEL org.label-schema.build-date=${BUILD_DATE}
+LABEL org.label-schema.name="The Things Stack LoRaWAN Network Server"
+LABEL org.label-schema.description="The Things Stack LoRaWAN Network Server"
+LABEL org.label-schema.version="${VERSION}-lite based on ${REMOTE_TAG}"
+LABEL org.label-schema.vcs-type="Git"
+LABEL org.label-schema.vcs-url="https://github.com/xoseperez/the-things-stack-docker"
+LABEL org.label-schema.vcs-ref=${TAG}
+LABEL org.label-schema.arch=${ARCH}
+LABEL org.label-schema.license="Apache 2.0"
+
+USER root:root
+
+RUN addgroup -g 886 thethings && adduser -u 886 -S -G thethings thethings
+RUN apk --update --no-cache add ca-certificates curl openssl jq
+
+# Copy resources from builder
+COPY --from=builder /bin/ttn-lw-stack /bin/ttn-lw-stack
+COPY --from=builder /bin/ttn-lw-cli /bin/ttn-lw-cli
+COPY --from=builder /srv/ttn-lorawan/lorawan-frequency-plans /srv/ttn-lorawan/lorawan-frequency-plans
+COPY --from=builder /srv/ttn-lorawan/lorawan-webhook-templates /srv/ttn-lorawan/lorawan-webhook-templates
+COPY --from=builder /data/lorawan-devices-index /srv/ttn-lorawan/lorawan-devices-index
+COPY --from=builder /srv/ttn-lorawan/public /srv/ttn-lorawan/public
+
+# Permissions ans soft links as in original image
+RUN chmod 755 -R /srv/ttn-lorawan/lorawan-devices-index
+RUN ln -s /bin/ttn-lw-stack /bin/stack
+RUN ln -s /bin/ttn-lw-cli /bin/cli
+
+# Certificate creation tools
+ADD https://github.com/cloudflare/cfssl/releases/download/1.2.0/cfssl_linux-${CFSSL_ARCH} /usr/bin/cfssl
+ADD https://github.com/cloudflare/cfssl/releases/download/1.2.0/cfssljson_linux-${CFSSL_ARCH} /usr/bin/cfssljson
+RUN chmod +x /usr/bin/cfssl*
+
+# Data folder
+RUN mkdir /srv/data
+RUN chmod 777 /srv/data
+VOLUME [ "/srv/data" ]
+
+# Copy scripts
+WORKDIR /home/thethings
+COPY runner/* .
+RUN chmod +x start get_trust_certificate reset_certificates reset_database
+ENV PATH="${PATH}:/home/thethings"
+
+# From original image
+EXPOSE 1700/udp 1881 8881 1882 8882 1883 8883 1884 8884 1885 8885 1887 8887
+VOLUME ["/srv/ttn-lorawan/public/blob"]
+ENV TTN_LW_HEALTHCHECK_URL=http://localhost:1885/healthz
+HEALTHCHECK --interval=1m --timeout=5s CMD curl -f $TTN_LW_HEALTHCHECK_URL || exit 1
+
+USER thethings:thethings
+
+ENTRYPOINT [ "sh", "start" ]

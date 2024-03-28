@@ -1,5 +1,3 @@
-version: '2'
-
 volumes:
     redis: 
     postgres:
@@ -35,9 +33,10 @@ services:
     image: xoseperez/the-things-stack:latest
     #build:
     #    context: .
+    #    dockerfile: Dockerfile
     #    args:
     #        ARCH: amd64
-    #        REMOTE_TAG: 3.29.1
+    #        REMOTE_TAG: 3.29.2
     container_name: stack
     restart: unless-stopped
     depends_on:
