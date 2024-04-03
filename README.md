@@ -253,10 +253,10 @@ Variable Name | Value | Description | Default
 **TTS_SMTP_USER** | `STRING` | SMTP User |  
 **TTS_SMTP_PASS** | `STRING` | SMTP Password |  
 **TTS_SENDGRID_KEY** | `STRING` | Sendgrid API Key (SMTP_HOST has to be empty in order to use this) | 
-**TTS_SUBJECT_COUNTRY** | `STRING` | Self Certificate country code| ES
-**TTS_SUBJECT_STATE** | `STRING` | Self Certificate state | Catalunya
-**TTS_SUBJECT_LOCATION** | `STRING` | Self Certificate city | Barcelona
-**TTS_SUBJECT_ORGANIZATION** | `STRING` | Self Certificate organization | TTN Catalunya
+**TTS_SUBJECT_COUNTRY** | `STRING` | Generated self-signed certificate: country code | ES
+**TTS_SUBJECT_STATE** | `STRING` | Generated self-signed certificate: state | Catalunya
+**TTS_SUBJECT_LOCATION** | `STRING` | Generated self-signed certificate: city | Barcelona
+**TTS_SUBJECT_ORGANIZATION** | `STRING` | Generated self-signed certificate: organization | TTN Catalunya
 **TTS_NET_ID** | `HEX` | Network ID | 000000
 **TTS_DEVADDR_RANGE** | `HEX/INT` | Device address range | 00000000/7
 **PB_HOME_ENABLE** | `true` or `false` | Network is home network from the Packet Broker point of view | `false`
@@ -266,6 +266,44 @@ Variable Name | Value | Description | Default
 **PB_OAUTH_ID** | `STRING` | Packet Broker API key ID | 
 **PB_OAUTH_SECRET** | `STRING` | Packet Broker API secret | 
 **CLI_AUTO_LOGIN** | `true` or `false` | Enable CLI automatic login (see CLI Auto Login section above) | `false`
+
+
+### Using custom certificates
+
+To use CA certificates you already have or custom self-signed certificates, you can provide them via [docker secrets](https://docs.docker.com/compose/use-secrets/) uncommenting the corresponding sections of the provided `docker-compose.yml` file:
+
+```
+services:
+
+  ...
+
+  stack:
+
+    ...
+
+    secrets:
+      - ca.pem
+      - cert.pem
+      - key.pem
+
+    ...
+  
+secrets:
+  ca.pem:
+    file: ./ca.pem
+  cert.pem:
+    file: ./cert.pem
+  key.pem:
+    file: ./key.pem
+```
+
+If you want to use the certificate (`cert.pem`) and key (`key.pem`) that you already have, you also need to set the permissions below. If you don’t set these permissions, you may encounter an error resembling `/run/secrets/key.pem: permission denied`. 
+
+```
+sudo chown 886:886 ./cert.pem ./key.pem
+```
+
+When using custom certificates, the `TTS_SUBJECT_*` variables are not used.
 
 
 ## Troubleshooting
@@ -284,6 +322,9 @@ If you reset the certificates (by running `reset_certificates` or changing any o
 ```
 docker exec stack get_trust_certificate
 ```
+
+The above does not apply when providing your own custom certificates.
+
 
 ### Database reset
 
@@ -324,11 +365,6 @@ Therefore:
 1. **Using a domain name for your machine is the best option. Set `TTS_DOMAIN` to that name. The name should resolve from the same machine and from the network that will be accessing the server. Use the same domain name everywhere.**
 2. If you cannot have a domain name, you can use the IP of the machine as `TTS_DOMAIN` and bypass any possible certificate errors by setting `TLS_SNI` to `false` in your basicstation service. This is OK for private deployments with self-signed certificates.
 
-## TODO
-
-* Lots of testing :)
-* Testing performance (# of devices) on different platforms
-* Option to use ACME / Let's Encrypt for valid certificates
 
 ## Attribution
 

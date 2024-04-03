@@ -1,10 +1,10 @@
 version: '2'
 
 volumes:
-    redis: 
-    postgres:
-    stack-blob:
-    stack-data:
+  redis: 
+  postgres:
+  stack-blob:
+  stack-data:
 
 services:
 
@@ -13,13 +13,13 @@ services:
     container_name: postgres
     restart: unless-stopped
     environment:
-        - POSTGRES_PASSWORD=root
-        - POSTGRES_USER=root
-        - POSTGRES_DB=ttn_lorawan
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_USER=root
+      - POSTGRES_DB=ttn_lorawan
     volumes:
-        - 'postgres:/var/lib/postgresql/data'
+      - 'postgres:/var/lib/postgresql/data'
     ports:
-        - "127.0.0.1:5432:5432"
+      - "127.0.0.1:5432:5432"
     
   redis:
     image: redis:7.0.0-alpine3.15
@@ -27,53 +27,65 @@ services:
     command: redis-server --appendonly yes
     restart: unless-stopped
     volumes:
-        - 'redis:/data'
+      - 'redis:/data'
     ports:
-        - "127.0.0.1:6379:6379"
+      - "127.0.0.1:6379:6379"
   
   stack:
     image: xoseperez/the-things-stack:latest
     #build:
-    #    context: .
-    #    dockerfile: Dockerfile
-    #    args:
-    #        ARCH: amd64
-    #        REMOTE_TAG: 3.29.2
+    #  context: .
+    #  dockerfile: Dockerfile
+    #  args:
+    #    ARCH: amd64
+    #    REMOTE_TAG: 3.29.2
     container_name: stack
     restart: unless-stopped
     depends_on:
-        - redis
-        - postgres
+      - redis
+      - postgres
     volumes:
-        - 'stack-blob:/srv/ttn-lorawan/public/blob'
-        - 'stack-data:/srv/data'
+      - 'stack-blob:/srv/ttn-lorawan/public/blob'
+      - 'stack-data:/srv/data'
     environment:
-        TTS_DOMAIN: lns.example.com
-        TTN_LW_BLOB_LOCAL_DIRECTORY: /srv/ttn-lorawan/public/blob
-        TTN_LW_REDIS_ADDRESS: redis:6379
-        TTN_LW_IS_DATABASE_URI: postgres://root:root@postgres:5432/ttn_lorawan?sslmode=disable
-        CLI_AUTO_LOGIN: "false"
+      TTS_DOMAIN: lns.example.com
+      TTN_LW_BLOB_LOCAL_DIRECTORY: /srv/ttn-lorawan/public/blob
+      TTN_LW_REDIS_ADDRESS: redis:6379
+      TTN_LW_IS_DATABASE_URI: postgres://root:root@postgres:5432/ttn_lorawan?sslmode=disable
+      CLI_AUTO_LOGIN: "false"
     labels:
-        io.balena.features.balena-api: '1'
+      io.balena.features.balena-api: '1'
+
+    #secrets:
+    #  - ca.pem
+    #  - cert.pem
+    #  - key.pem
 
     ports:
     
-        - "80:1885"
-        - "443:8885"
+      - "80:1885"
+      - "443:8885"
     
-        - "1881:1881"
-        - "1882:1882"
-        - "1883:1883"
-        - "1884:1884"
-        - "1885:1885"
-        - "1887:1887"
-    
-        - "8881:8881"
-        - "8882:8882"
-        - "8883:8883"
-        - "8884:8884"
-        - "8885:8885"
-        - "8887:8887"
-    
-        - "1700:1700/udp"
-  
+      - "1881:1881"
+      - "1882:1882"
+      - "1883:1883"
+      - "1884:1884"
+      - "1885:1885"
+      - "1887:1887"
+      
+      - "8881:8881"
+      - "8882:8882"
+      - "8883:8883"
+      - "8884:8884"
+      - "8885:8885"
+      - "8887:8887"
+      
+      - "1700:1700/udp"
+
+#secrets:
+#  ca.pem:
+#    file: ./ca.pem
+#  cert.pem:
+#    file: ./cert.pem
+#  key.pem:
+#    file: ./cert-key.pem
