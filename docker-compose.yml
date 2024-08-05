@@ -1,4 +1,4 @@
-version: '2'
+#version: '2'
 
 volumes:
   redis: 
@@ -38,7 +38,7 @@ services:
     #  dockerfile: Dockerfile
     #  args:
     #    ARCH: amd64
-    #    REMOTE_TAG: 3.29.2
+    #    REMOTE_TAG: 3.31.1
     container_name: stack
     restart: unless-stopped
     depends_on:

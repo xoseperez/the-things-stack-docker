@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.3 (2024-08-04)
+
+* Updated to Stack 3.31.1
+
 ## 1.2.2 (2024-04-03)
 
 * Option to use custom certificates via docker secrets

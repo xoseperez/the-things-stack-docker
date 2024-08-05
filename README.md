@@ -365,6 +365,13 @@ Therefore:
 1. **Using a domain name for your machine is the best option. Set `TTS_DOMAIN` to that name. The name should resolve from the same machine and from the network that will be accessing the server. Use the same domain name everywhere.**
 2. If you cannot have a domain name, you can use the IP of the machine as `TTS_DOMAIN` and bypass any possible certificate errors by setting `TLS_SNI` to `false` in your basicstation service. This is OK for private deployments with self-signed certificates.
 
+### Build problems
+
+If you are building the images, please make sure you have a proper multiplatform builder in place:
+
+```
+docker buildx create --name cross --bootstrap --platform linux/arm/v7,linux/arm64,linux/amd6,linux/arm/v7 --use
+```
 
 ## Attribution
 

@@ -5,7 +5,7 @@ ARG ARCH
 ARG REMOTE_TAG
 ARG CFSSL_ARCH=${ARCH}
 
-FROM thethingsnetwork/lorawan-stack:${REMOTE_TAG} as builder
+FROM thethingsnetwork/lorawan-stack:${REMOTE_TAG} AS builder
 
 USER root:root
 RUN rm -rf /srv/ttn-lorawan/lorawan-devices-index && \ 
@@ -13,7 +13,7 @@ RUN rm -rf /srv/ttn-lorawan/lorawan-devices-index && \
     echo "vendors:" > data/lorawan-devices/vendor/index.yaml && \
     ttn-lw-stack dr-db init
 
-FROM alpine:3.19 as runner
+FROM alpine:3.19 AS runner
 
 ARG TAG
 ARG VERSION
