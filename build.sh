@@ -49,7 +49,7 @@ VERSION=$(git describe --abbrev=0 --tags)
 MAJOR=$(git describe --abbrev=0 --tags | cut -d '.' -f1)
 BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 REGISTRY=${REGISTRY:-"xoseperez/the-things-stack"}
-REMOTE_TAG=${REMOTE_TAG:-"3.32.0"}
+REMOTE_TAG=${REMOTE_TAG:-"3.34.3"}
 
 export TAG
 export VERSION
@@ -82,7 +82,7 @@ fi
 if [[ ${PUSH} -eq 1 ]]; then
   time docker buildx bake --push "${TARGETS[@]}"
 else
-  time docker buildx bake "${TARGETS[@]}"
+  time docker buildx bake --load "${TARGETS[@]}"
 fi
 
 # -----------------------------------------------------------------------------

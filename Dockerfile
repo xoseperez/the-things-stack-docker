@@ -5,7 +5,7 @@ ARG ARCH
 ARG REMOTE_TAG
 ARG CFSSL_ARCH=${ARCH}
 
-FROM thethingsnetwork/lorawan-stack:${REMOTE_TAG}
+FROM thethingsnetwork/lorawan-stack:${REMOTE_TAG:-latest}
 
 ARG TAG
 ARG VERSION
