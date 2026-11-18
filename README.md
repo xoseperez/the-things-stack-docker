@@ -10,7 +10,7 @@ Main features:
 
 * Supports for AMD64 (x86_64), ARMv8 and ARMv7 architectures.
 * Automatically creates a configuration file based on environment variables
-* Creates a self signed certificate
+* Creates a self signed certificate, and renews it before it expires
 * Configures the identity database
   * Initializes it
   * Creates an admin
@@ -20,6 +20,20 @@ Main features:
 Based on [The Things Stack](https://hub.docker.com/r/thethingsnetwork/lorawan-stack/) image.
 
 This project is available on Docker Hub (https://hub.docker.com/r/xoseperez/the-things-stack) and GitHub (https://github.com/xoseperez/the-things-stack-docker).
+
+### Tags
+
+Each release of this repository packages one release of The Things Stack, and its version is the upstream version plus a revision number: `3.37.0-r1` is the first image of Stack 3.37.0, `3.37.0-r2` the next one with changes to this image only.
+
+Tag | Points to
+--- | ---
+`3.37.0-r1` | that release (never changes)
+`3.37.0`, `3.37`, `3`, `latest` | the newest release
+`3.37.0-r1-lite`, `3.37.0-lite`, `3.37-lite`, `3-lite`, `lite` | the same, for the lite image (see below)
+
+Every tag is a multi-architecture image for `linux/amd64`, `linux/arm64` and `linux/arm/v7`, and Docker picks the right one. The per-architecture tags (`amd64-latest`, `aarch64-latest`, `armv7hf-latest` and their `-lite` versions) are no longer published. Versions up to 1.3.1 used their own numbering; the `1` tag stays on 1.3.1.
+
+The lite image is the same stack without the LoRaWAN device repository, which makes it about half the size. Devices are then registered without picking them from the repository.
 
 This is a Work In Progress. It is **not meant for production environments** but it should work just fine for local (LAN) deployments.
 
@@ -76,7 +90,7 @@ volumes:
 services:
 
   postgres:
-    image: postgres:14.3-alpine3.15
+    image: postgres:14-alpine
     container_name: postgres
     restart: unless-stopped
     environment:
@@ -89,7 +103,7 @@ services:
         - "127.0.0.1:5432:5432"
     
   redis:
-    image: redis:7.0.0-alpine3.15
+    image: redis:7-alpine
     container_name: redis
     command: redis-server --appendonly yes
     restart: unless-stopped
@@ -179,7 +193,7 @@ Point your browser to the first local IP of the device or to the domain name (if
 
 ### Resetting values
 
-Certificates are recreated if TTS_DOMAIN or any TTS_SUBJECT_* variable below changes.
+Certificates are recreated if TTS_DOMAIN or any TTS_SUBJECT_* variable below changes. The server certificate is valid for 825 days and is renewed with the same CA when less than 30 days are left, so gateways keep trusting it. The CA is valid for 10 years; when less than 30 days are left it is replaced, and gateways need the new trust certificate (see `get_trust_certificate` below).
 Database is reset if TTS_DOMAIN, TTS_ADMIN_EMAIL, TTS_ADMIN_PASSWORD or TTS_CONSOLE_SECRET change.
 
 Alternatively you can run the `reset_certificates` and `reset_database` scripts in the container and restart it.
@@ -241,7 +255,8 @@ If you want to fully integrate your cluster with The Things Network, this can be
 Variable Name | Value | Description | Default
 ------------ | ------------- | ------------- | -------------
 **TTS_SERVER_NAME** | `STRING` | Name of the server | The Things Stack
-**TTS_DOMAIN** | `STRING` | Domain | Required, will not boot if undefined
+**TTS_DOMAIN** | `STRING` | Domain name or IPv4 address the stack is reached at | Required, will not boot if undefined
+**TTS_PORT** | `INT` | Port the web UI is reached at, if not 443 | 443
 **TTS_ADMIN_EMAIL** | `STRING` | Admin email | admin@thethings.example.com
 **TTS_NOREPLY_EMAIL** | `STRING` | Email used for communications | noreply@thethings.example.com
 **TTS_ADMIN_PASSWORD** | `STRING` | Admin password (change it here or in the admin profile) | changeme
@@ -253,7 +268,7 @@ Variable Name | Value | Description | Default
 **TTS_SMTP_USER** | `STRING` | SMTP User |  
 **TTS_SMTP_PASS** | `STRING` | SMTP Password |  
 **TTS_SENDGRID_KEY** | `STRING` | Sendgrid API Key (SMTP_HOST has to be empty in order to use this) | 
-**TTS_SUBJECT_COUNTRY** | `STRING` | Generated self-signed certificate: country code | ES
+**TTS_SUBJECT_COUNTRY** | `STRING` | Generated self-signed certificate: two-letter country code | ES
 **TTS_SUBJECT_STATE** | `STRING` | Generated self-signed certificate: state | Catalunya
 **TTS_SUBJECT_LOCATION** | `STRING` | Generated self-signed certificate: city | Barcelona
 **TTS_SUBJECT_ORGANIZATION** | `STRING` | Generated self-signed certificate: organization | TTN Catalunya
@@ -266,6 +281,14 @@ Variable Name | Value | Description | Default
 **PB_OAUTH_ID** | `STRING` | Packet Broker API key ID | 
 **PB_OAUTH_SECRET** | `STRING` | Packet Broker API secret | 
 **CLI_AUTO_LOGIN** | `true` or `false` | Enable CLI automatic login (see CLI Auto Login section above) | `false`
+
+The stack itself also reads `TTN_LW_*` variables, such as `TTN_LW_IS_DATABASE_URI` and `TTN_LW_REDIS_ADDRESS` in the compose file above. An invalid value for any of the variables in the table stops the container with a message naming it.
+
+To see the configuration a set of variables produces, without starting the stack:
+
+```
+docker run --rm -e TTS_DOMAIN=lns.example.com xoseperez/the-things-stack --render
+```
 
 
 ### Using custom certificates
@@ -328,7 +351,7 @@ The above does not apply when providing your own custom certificates.
 
 ### Database reset
 
-If you are having certificates problems or "token rejected" message on the TTS website, try forcing a certificate regeneration:
+To write the admin user and the OAuth clients for the CLI and the Console again:
 
 ```
 docker exec stack reset_database
@@ -365,13 +388,18 @@ Therefore:
 1. **Using a domain name for your machine is the best option. Set `TTS_DOMAIN` to that name. The name should resolve from the same machine and from the network that will be accessing the server. Use the same domain name everywhere.**
 2. If you cannot have a domain name, you can use the IP of the machine as `TTS_DOMAIN` and bypass any possible certificate errors by setting `TLS_SNI` to `false` in your basicstation service. This is OK for private deployments with self-signed certificates.
 
-### Build problems
+## Building
 
-If you are building the images, please make sure you have a proper multiplatform builder in place:
+The upstream version an image is built from is `UPSTREAM_VERSION` in `docker-bake.hcl`. To build both images for this machine and load them into Docker:
 
 ```
-docker buildx create --name cross --bootstrap --platform linux/arm/v7,linux/arm64,linux/amd6,linux/arm/v7 --use
+docker buildx bake -f docker-bake.hcl --load --set '*.platform=linux/amd64'
+./smoke-test.sh xoseperez/the-things-stack:dev linux/amd64
 ```
+
+`-f docker-bake.hcl` is needed: without it, bake also reads `docker-compose.yml`. Set `REGISTRY` and `VERSION` to name the images differently, and use `--push` instead of `--load` to push them. Building for other platforms needs QEMU (`docker run --privileged --rm tonistiigi/binfmt --install all`).
+
+Releases are built, tested and pushed to Docker Hub by `.github/workflows/docker-release.yml`. To release a new upstream version, set `UPSTREAM_VERSION` in `docker-bake.hcl` (and `version` in `balena.yml`), tag the commit `v<upstream version>-r1` and publish a GitHub release for the tag. The workflow can also be run by hand for an existing tag.
 
 ## Attribution
 

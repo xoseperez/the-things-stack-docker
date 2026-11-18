@@ -1,0 +1,98 @@
+name: Docker release
+
+# Builds, tests and pushes both images (full and lite) for a release of this
+# repository. Release tags name the upstream version they package:
+# v<upstream version>-r<n>, where n counts this repository's revisions on top of
+# that upstream release (v3.37.0-r1, v3.37.0-r2, ...).
+#
+# It runs when a release is published, and can be run by hand for any existing
+# release tag. Everything it builds, and the smoke test, comes from the tag.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag, e.g. v3.37.0-r1
+        required: true
+      replace:
+        description: Replace the images if this version is already on Docker Hub
+        type: boolean
+        default: false
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      REPLACE: ${{ inputs.replace || false }}
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
+          # All tags, to find the newest release.
+          fetch-depth: 0
+      -
+        name: Versions
+        run: |
+          if ! [[ "$TAG" =~ ^v(([0-9]+)\.([0-9]+)\.([0-9]+))-r[0-9]+$ ]]; then
+            echo "::error::Tag $TAG does not match v<major>.<minor>.<patch>-r<n>"
+            exit 1
+          fi
+          UPSTREAM="${BASH_REMATCH[1]}"
+          MAJOR="${BASH_REMATCH[2]}"
+          MINOR="$MAJOR.${BASH_REMATCH[3]}"
+          # Rebuilding an older release must not move the floating tags back. The
+          # pattern leaves out the earlier 1.x tags of this repository.
+          NEWEST=$(git tag -l | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+-r[0-9]+$' | sort -V | tail -n1)
+          EXTRA_TAGS=""
+          if [ "$TAG" = "$NEWEST" ]; then EXTRA_TAGS="$UPSTREAM,$MINOR,$MAJOR,latest"; fi
+          {
+            echo "UPSTREAM=$UPSTREAM"
+            echo "VERSION=${TAG#v}"
+            echo "EXTRA_TAGS=$EXTRA_TAGS"
+            echo "REVISION=$(git rev-parse HEAD)"
+          } >> "$GITHUB_ENV"
+          echo "Image tags: ${TAG#v} $EXTRA_TAGS (and the same with -lite)"
+      -
+        uses: docker/setup-qemu-action@v4
+      -
+        uses: docker/setup-buildx-action@v4
+      -
+        name: Check the tag matches the upstream version
+        run: |
+          PREPARED=$(docker buildx bake -f docker-bake.hcl --print | jq -r '.target.stack.args.UPSTREAM_VERSION')
+          if [ "$PREPARED" != "$UPSTREAM" ]; then
+            echo "::error::$TAG names upstream $UPSTREAM, but the tagged commit builds $PREPARED (UPSTREAM_VERSION in docker-bake.hcl)"
+            exit 1
+          fi
+      -
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: Check the version is new
+        if: env.REPLACE != 'true'
+        run: |
+          IMAGE=$(docker buildx bake -f docker-bake.hcl --print | jq -r '.target.stack.tags[0]')
+          if docker buildx imagetools inspect "$IMAGE" > /dev/null 2>&1; then
+            echo "::error::$IMAGE is already published. To rebuild it, run this by hand with 'replace' ticked."
+            exit 1
+          fi
+      -
+        name: Smoke test
+        run: |
+          for platform in linux/amd64 linux/arm64 linux/arm/v7; do
+            docker buildx bake -f docker-bake.hcl --load --set "*.platform=$platform" \
+              --set "stack.tags=smoke:stack" --set "lite.tags=smoke:lite"
+            ./smoke-test.sh smoke:stack "$platform"
+            ./smoke-test.sh smoke:lite "$platform"
+          done
+      -
+        name: Build and push
+        run: docker buildx bake -f docker-bake.hcl --push

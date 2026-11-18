@@ -1,94 +1,61 @@
-variable "TAG" { default = "latest" }
-variable "VERSION" { default = "latest" }
-variable "BUILD_DATE" { default = "" }
+# Builds both images, for all platforms:
+#   docker buildx bake
+# For this machine only, loaded into the local Docker:
+#   docker buildx bake --load --set '*.platform=linux/amd64'
+
 variable "REGISTRY" { default = "xoseperez/the-things-stack" }
-variable "REMOTE_TAG" { default = "3.34.3" }
+# The upstream release this commit is prepared for. Release tags must name it:
+# v<UPSTREAM_VERSION>-r<n>. The release workflow checks they match.
+variable "UPSTREAM_VERSION" { default = "3.37.0" }
+variable "VERSION" { default = "dev" }
+# Comma-separated extra tags; CI passes "X.Y.Z,X.Y,X,latest" for the newest release.
+variable "EXTRA_TAGS" { default = "" }
+variable "REVISION" { default = "" }
+
+# The image tags, with SUFFIX added. The lite image's "latest" is plain "lite".
+function "image_tags" {
+  params = [suffix]
+  result = concat(
+    ["${REGISTRY}:${VERSION}${suffix}"],
+    [for t in split(",", EXTRA_TAGS) :
+      (t == "latest" && suffix != "" ? "${REGISTRY}:lite" : "${REGISTRY}:${t}${suffix}") if t != ""]
+  )
+}
 
 group "default" {
-    targets = ["armv7hf", "aarch64", "amd64", "armv7hf-lite", "aarch64-lite", "amd64-lite"]
+  targets = ["stack", "lite"]
 }
 
-target "armv7hf" {
-    tags = ["${REGISTRY}:armv7hf-latest"]
-    dockerfile = "Dockerfile"
-    args = {
-        "ARCH" = "armv7hf",
-        "CFSSL_ARCH" = "arm",
-        "REMOTE_TAG" = "${REMOTE_TAG}",
-        "TAG" = "${TAG}",
-        "VERSION" = "${VERSION}",
-        "BUILD_DATE" = "${BUILD_DATE}"
-    }
-    platforms = ["linux/arm/v7"]
+target "_common" {
+  context   = "."
+  platforms = ["linux/amd64", "linux/arm64", "linux/arm/v7"]
+  args = {
+    UPSTREAM_VERSION = UPSTREAM_VERSION
+    VERSION          = VERSION
+  }
+  labels = {
+    "org.opencontainers.image.source"    = "https://github.com/xoseperez/the-things-stack-docker"
+    "org.opencontainers.image.version"   = VERSION
+    "org.opencontainers.image.revision"  = REVISION
+    "org.opencontainers.image.licenses"  = "Apache-2.0"
+    "org.opencontainers.image.base.name" = "docker.io/thethingsnetwork/lorawan-stack:${UPSTREAM_VERSION}"
+  }
 }
 
-target "aarch64" {
-    tags = ["${REGISTRY}:aarch64-latest"]
-    dockerfile = "Dockerfile"
-    args = {
-        "ARCH" = "aarch64",
-        "CFSSL_ARCH" = "arm",
-        "REMOTE_TAG" = "${REMOTE_TAG}",
-        "TAG" = "${TAG}",
-        "VERSION" = "${VERSION}",
-        "BUILD_DATE" = "${BUILD_DATE}"
-    }
-    platforms = ["linux/arm64"]
+target "stack" {
+  inherits   = ["_common"]
+  dockerfile = "Dockerfile"
+  tags       = image_tags("")
+  labels = {
+    "org.opencontainers.image.title" = "The Things Stack"
+  }
 }
 
-target "amd64" {
-    tags = ["${REGISTRY}:amd64-latest"]
-    dockerfile = "Dockerfile"
-    args = {
-        "ARCH" = "amd64",
-        "CFSSL_ARCH" = "amd64",
-        "REMOTE_TAG" = "${REMOTE_TAG}",
-        "TAG" = "${TAG}",
-        "VERSION" = "${VERSION}",
-        "BUILD_DATE" = "${BUILD_DATE}"
-    }
-    platforms = ["linux/amd64"]
+target "lite" {
+  inherits   = ["_common"]
+  dockerfile = "Dockerfile.lite"
+  tags       = image_tags("-lite")
+  labels = {
+    "org.opencontainers.image.title" = "The Things Stack (lite)"
+  }
 }
-
-target "armv7hf-lite" {
-    tags = ["${REGISTRY}:armv7hf-latest-lite"]
-    dockerfile = "Dockerfile.lite"
-    args = {
-        "ARCH" = "armv7hf",
-        "CFSSL_ARCH" = "arm",
-        "REMOTE_TAG" = "${REMOTE_TAG}",
-        "TAG" = "${TAG}",
-        "VERSION" = "${VERSION}",
-        "BUILD_DATE" = "${BUILD_DATE}"
-    }
-    platforms = ["linux/arm/v7"]
-}
-
-target "aarch64-lite" {
-    tags = ["${REGISTRY}:aarch64-latest-lite"]
-    dockerfile = "Dockerfile.lite"
-    args = {
-        "ARCH" = "aarch64",
-        "CFSSL_ARCH" = "arm",
-        "REMOTE_TAG" = "${REMOTE_TAG}",
-        "TAG" = "${TAG}",
-        "VERSION" = "${VERSION}",
-        "BUILD_DATE" = "${BUILD_DATE}"
-    }
-    platforms = ["linux/arm64"]
-}
-
-target "amd64-lite" {
-    tags = ["${REGISTRY}:amd64-latest-lite"]
-    dockerfile = "Dockerfile.lite"
-    args = {
-        "ARCH" = "amd64",
-        "CFSSL_ARCH" = "amd64",
-        "REMOTE_TAG" = "${REMOTE_TAG}",
-        "TAG" = "${TAG}",
-        "VERSION" = "${VERSION}",
-        "BUILD_DATE" = "${BUILD_DATE}"
-    }
-    platforms = ["linux/amd64"]
-}
-

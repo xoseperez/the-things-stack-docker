@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.37.0-r1 (2026-11-18)
+
+* Updated to Stack 3.37.0
+* Version numbers now follow upstream with -rN for revisions
+* Fix the self-signed server certificate expiring after a year
+* Fix settings with `/`, `&`, `'` or `\` breaking or changing the configuration
+* Fix every restart logging all users out of the Console
+* The admin password is no longer stored in clear in `/srv/data/database_signature`
+* Fix `docker stop` always waiting 10 seconds and killing the stack
+* Fix the CLI login URL when `TTS_PORT` is not 443
+* Fix the database port defaulting to the host name when `TTN_LW_IS_DATABASE_URI` has none
+* Fix the CA certificate sent to balena as `TC_TRUST`
+* Invalid settings stop the container with a message naming the setting
+* Certificates are created with openssl
+* Lite image on Alpine 3.24
+
 ## 1.3.1 (2025-10-28)
 
 * Updated to Stack 3.34.3

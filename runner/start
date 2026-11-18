@@ -1,147 +1,72 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-VERSION=1.3.1
+# Configures The Things Stack from environment variables and starts it: writes
+# the stack and CLI configuration files, creates the self-signed certificates
+# (or takes custom ones from Docker secrets), migrates the database and creates
+# the admin user and OAuth clients, then hands over to ttn-lw-stack.
+#
+#   start            configure and run the stack
+#   start --render   print the configuration files and exit, without touching
+#                    the database or the certificates
 
-# -----------------------------------------------------------------------------
-# Colors
-# -----------------------------------------------------------------------------
+set -euo pipefail
 
-COLOR_INFO="\e[32m" # green
-COLOR_ERROR="\e[31m" # red
-COLOR_END="\e[0m"
+cd "$(dirname "$0")"
+# shellcheck source=common.sh
+source ./common.sh
 
-# -----------------------------------------------------------------------------
-# Utils
-# -----------------------------------------------------------------------------
-
-replace_placeholders() {
-    FILE="$1"
-    sed -i -e "s/{{server_name}}/${TTS_SERVER_NAME}/g" "${FILE}"
-    sed -i -e "s/{{admin_email}}/${TTS_ADMIN_EMAIL}/g" "${FILE}"
-    sed -i -e "s/{{noreply_email}}/${TTS_NOREPLY_EMAIL}/g" "${FILE}"
-    sed -i -e "s/{{console_secret}}/${TTS_CONSOLE_SECRET}/g" "${FILE}"
-    sed -i -e "s/{{domain}}/${TTS_DOMAIN}/g" "${FILE}"
-    sed -i -e "s/{{port}}/${TTS_PORT}/g" "${FILE}"
-    sed -i -e "s/{{mail_provider}}/${MAIL_PROVIDER}/g" "${FILE}"
-    sed -i -e "s/{{sendgrid_key}}/${TTS_SENDGRID_KEY}/g" "${FILE}"
-    sed -i -e "s/{{smtp_host}}/${TTS_SMTP_HOST}/g" "${FILE}"
-    sed -i -e "s/{{smtp_user}}/${TTS_SMTP_USER}/g" "${FILE}"
-    sed -i -e "s/{{smtp_pass}}/${TTS_SMTP_PASS}/g" "${FILE}"
-    sed -i -e "s/{{block_key}}/${BLOCK_KEY}/g" "${FILE}"
-    sed -i -e "s/{{hash_key}}/${HASH_KEY}/g" "${FILE}"
-    sed -i -e "s/{{metrics_password}}/${TTS_METRICS_PASSWORD}/g" "${FILE}"
-    sed -i -e "s/{{pprof_password}}/${TTS_PPROF_PASSWORD}/g" "${FILE}"
-    sed -i -e "s/{{device_claiming_secret}}/${TTS_DEVICE_CLAIMING_SECRET}/g" "${FILE}"
-    sed -i -e "s/{{data_folder}}/${DATA_FOLDER_ESC}/g" "${FILE}"
-    sed -i -e "s/{{net_id}}/${TTS_NET_ID}/g" "${FILE}"
-    sed -i -e "s/{{devaddr_range}}/${TTS_DEVADDR_RANGE_ESC}/g" "${FILE}"
-    sed -i -e "s/{{pb_forwarder_prefix}}/${PB_FORWARDER_PREFIX:-}/g" "${FILE}"
-    sed -i -e "s/{{pb_home_enable}}/${PB_HOME_ENABLE}/g" "${FILE}"
-    sed -i -e "s/{{pb_forwarder_enable}}/${PB_FORWARDER_ENABLE}/g" "${FILE}"
-    sed -i -e "s/{{pb_host}}/${PB_HOST}/g" "${FILE}"
-    sed -i -e "s/{{pb_tenant_id}}/${PB_TENANT_ID}/g" "${FILE}"
-    sed -i -e "s/{{pb_oauth_id}}/${PB_OAUTH_ID}/g" "${FILE}"
-    sed -i -e "s/{{pb_oauth_secret}}/${PB_OAUTH_SECRET}/g" "${FILE}"
-    sed -i -e "s/{{pb_token}}/${PB_TOKEN}/g" "${FILE}"
-}
-
-# Code based on https://github.com/vishnubob/wait-for-it
-wait_for_port() {
-
-    WAITFORIT_HOST=$1
-    WAITFORIT_PORT=$2
-    WAITFORIT_TIMEOUT=15
-
-    echo -e "${COLOR_INFO}Waiting for ${WAITFORIT_HOST}:${WAITFORIT_PORT}"
-    
-    WAITFORIT_START_TS=$(date +%s)
-    while :
-    do
-
-        nc -z "${WAITFORIT_HOST}" "${WAITFORIT_PORT}"
-        WAITFORIT_RESULT=$?
-
-        WAITFORIT_END_TS=$(date +%s)
-        WAITFORIT_SECONDS=$(( WAITFORIT_END_TS - WAITFORIT_START_TS ))
-
-        if [ ${WAITFORIT_RESULT} -eq 0 ]; then
-            echo -e "${COLOR_INFO}Connection to ${WAITFORIT_HOST}:${WAITFORIT_PORT} is available after ${WAITFORIT_SECONDS} seconds"
-            break
-        fi
-
-        if [ ${WAITFORIT_TIMEOUT} -gt 0 ] && [ ${WAITFORIT_SECONDS} -gt ${WAITFORIT_TIMEOUT} ]; then
-            echo -e "${COLOR_ERROR}Connection to ${WAITFORIT_HOST}:${WAITFORIT_PORT} timed out"
-            break;
-        fi
-
-        sleep 1
-
-    done
-
-    return "${WAITFORIT_RESULT}"
-
-}
-
-# -----------------------------------------------------------------------------
-# Load Balena specific methods
-# -----------------------------------------------------------------------------
-
-if [ "${BALENA_DEVICE_UUID}" != "" ]
-then
-    # shellcheck source=/dev/null
-    . ./balena.sh
-    IP_LAN=$(balena_get_lan_ip)
-    TTS_DOMAIN=${TTS_DOMAIN:-${IP_LAN%,*}}
-fi
-
-# -----------------------------------------------------------------------------
-# Check required settings
-# -----------------------------------------------------------------------------
-
-# Check domain
-if [ -z "${TTS_DOMAIN}" ]; then
-    echo -e "${COLOR_ERROR}ERROR: TTS_DOMAIN not defined.${COLOR_END}"
-    sleep infinity
-    exit 1
-fi
-
-# -----------------------------------------------------------------------------
-# Wait for Postgres
-# -----------------------------------------------------------------------------
-
-POSTGRES_STRING=$( echo "${TTN_LW_IS_DATABASE_URI}" | sed 's/.*@//' | sed 's/\/.*//' )
-POSTGRES_HOST=$( echo "${POSTGRES_STRING}" | cut -d':' -f1 )
-POSTGRES_PORT=$( echo "${POSTGRES_STRING}" | cut -d':' -f2 )
-wait_for_port "${POSTGRES_HOST}" "${POSTGRES_PORT}" || exit
-
-# -----------------------------------------------------------------------------
-# Debug
-# -----------------------------------------------------------------------------
-
-TTS_VERSION=$( ttn-lw-stack version | grep '^Version:' | awk '{print $2}' )
-
-echo -e "${COLOR_INFO}------------------------------------------------------------------${COLOR_END}"
-echo -e "${COLOR_INFO}The Things Stack Open Source for Docker v${VERSION}${COLOR_END}"
-echo -e "${COLOR_INFO}(c) Xose Pérez 2022-2024${COLOR_END}"
-echo -e ""
-echo -e "${COLOR_INFO}Based on:${COLOR_END}"
-echo -e "${COLOR_INFO} * lorawan-stack ${TTS_VERSION}${COLOR_END}"
-echo -e "${COLOR_INFO}------------------------------------------------------------------${COLOR_END}"
-echo -e "${COLOR_INFO}URL:         https://${TTS_DOMAIN}${COLOR_END}"
-echo -e "${COLOR_INFO}------------------------------------------------------------------${COLOR_END}"
-echo -e
-
-# -----------------------------------------------------------------------------
-# Preparing configuration
-# -----------------------------------------------------------------------------
-
-# Folders
-HOME_FOLDER=/home/thethings/
+HOME_FOLDER=/home/thethings
 DATA_FOLDER=/srv/data
 STACK_CONFIG_FILE=${HOME_FOLDER}/ttn-lw-stack-docker.yml
 CLI_CONFIG_FILE=${HOME_FOLDER}/.ttn-lw-cli.yml
 
-# Get configuration variables
+# -----------------------------------------------------------------------------
+# Helpers
+# -----------------------------------------------------------------------------
+
+# A value for a '...' YAML string, where a quote is written twice.
+yaml_escape() { printf '%s' "${1//\'/\'\'}"; }
+
+# A value for an openssl -subj field, where "/" separates fields.
+subject_escape() {
+    local value=${1//\\/\\\\}
+    printf '%s' "${value//\//\\/}"
+}
+
+# A random key kept in the data folder, so it survives restarts: a new cookie
+# key on every start would log every user out.
+stored_key() { # stored_key NAME BYTES
+    local file="${DATA_FOLDER}/$1"
+    if [[ ! -s "${file}" ]]; then
+        (umask 077 && openssl rand -hex "$2" > "${file}")
+    fi
+    cat "${file}"
+}
+
+# TCP connect through bash itself, so no netcat is needed.
+wait_for_port() { # wait_for_port HOST PORT SECONDS
+    local deadline=$(( SECONDS + $3 ))
+    info "Waiting for $1:$2"
+    # shellcheck disable=SC2016
+    until timeout 2 bash -c 'exec 3<> "/dev/tcp/$0/$1"' "$1" "$2" 2> /dev/null; do
+        (( SECONDS < deadline )) || return 1
+        sleep 1
+    done
+}
+
+# -----------------------------------------------------------------------------
+# Settings
+# -----------------------------------------------------------------------------
+
+IP_LAN=""
+if [[ -n "${BALENA_DEVICE_UUID:-}" && "${1:-}" != "--render" ]]; then
+    # shellcheck source=balena.sh
+    source ./balena.sh
+    IP_LAN=$(balena_get_lan_ip)
+    TTS_DOMAIN=${TTS_DOMAIN:-${IP_LAN%%,*}}
+fi
+
+TTS_DOMAIN=${TTS_DOMAIN:-}
 TTS_PORT=${TTS_PORT:-443}
 TTS_SERVER_NAME=${TTS_SERVER_NAME:-The Things Stack}
 TTS_ADMIN_EMAIL=${TTS_ADMIN_EMAIL:-admin@thethings.example.com}
@@ -153,76 +78,196 @@ TTS_METRICS_PASSWORD=${TTS_METRICS_PASSWORD:-metrics}
 TTS_PPROF_PASSWORD=${TTS_PPROF_PASSWORD:-pprof}
 TTS_NET_ID=${TTS_NET_ID:-000000}
 TTS_DEVADDR_RANGE=${TTS_DEVADDR_RANGE:-00000000/7}
-
-# Packet forwarder settings
+TTS_SMTP_HOST=${TTS_SMTP_HOST:-}
+TTS_SMTP_USER=${TTS_SMTP_USER:-}
+TTS_SMTP_PASS=${TTS_SMTP_PASS:-}
+TTS_SENDGRID_KEY=${TTS_SENDGRID_KEY:-}
+TTS_SUBJECT_COUNTRY=${TTS_SUBJECT_COUNTRY:-ES}
+TTS_SUBJECT_STATE=${TTS_SUBJECT_STATE:-Catalunya}
+TTS_SUBJECT_LOCATION=${TTS_SUBJECT_LOCATION:-Barcelona}
+TTS_SUBJECT_ORGANIZATION=${TTS_SUBJECT_ORGANIZATION:-TTN Catalunya}
 PB_HOME_ENABLE=${PB_HOME_ENABLE:-false}
 PB_FORWARDER_ENABLE=${PB_FORWARDER_ENABLE:-false}
 PB_HOST=${PB_HOST:-eu.packetbroker.io:443}
-[ "${PB_FORWARDER_ENABLE}" == "false" ] && PB_FORWARDER_PREFIX="#"
-
-DATA_FOLDER_ESC=$(echo "${DATA_FOLDER}" | sed 's/\//\\\//g')
-TTS_DEVADDR_RANGE_ESC=$(echo "${TTS_DEVADDR_RANGE}" | sed 's/\//\\\//g')
-BLOCK_KEY=$(openssl rand -hex 32)
-HASH_KEY=$(openssl rand -hex 64)
-PB_TOKEN=$(openssl rand -hex 16)
-[ -n "${TTS_SMTP_HOST}" ] && MAIL_PROVIDER="smtp" || MAIL_PROVIDER="sendgrid"
+PB_TENANT_ID=${PB_TENANT_ID:-}
+PB_OAUTH_ID=${PB_OAUTH_ID:-}
+PB_OAUTH_SECRET=${PB_OAUTH_SECRET:-}
+CLI_AUTO_LOGIN=${CLI_AUTO_LOGIN:-false}
 
 # -----------------------------------------------------------------------------
-# Create TTS config file
+# Validation
 # -----------------------------------------------------------------------------
 
-cp "${STACK_CONFIG_FILE}.template" "${STACK_CONFIG_FILE}"
-replace_placeholders "${STACK_CONFIG_FILE}"
+# These end up unquoted in the configuration or inside URLs, so they are checked
+# instead of escaped.
+[[ -n "${TTS_DOMAIN}" ]] \
+    || fail "TTS_DOMAIN is required: set it to the domain name or IP address the stack is reached at"
+[[ "${TTS_DOMAIN}" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$ ]] \
+    || fail "TTS_DOMAIN must be a domain name or an IPv4 address (got '${TTS_DOMAIN}')"
+if ! [[ "${TTS_PORT}" =~ ^[0-9]{1,5}$ ]] || (( TTS_PORT < 1 || TTS_PORT > 65535 )); then
+    fail "TTS_PORT must be a port number (got '${TTS_PORT}')"
+fi
+[[ "${TTS_NET_ID}" =~ ^[0-9A-Fa-f]{6}$ ]] \
+    || fail "TTS_NET_ID must be 6 hexadecimal characters (got '${TTS_NET_ID}')"
+[[ "${TTS_DEVADDR_RANGE}" =~ ^[0-9A-Fa-f]{8}/[0-9]{1,2}$ ]] \
+    || fail "TTS_DEVADDR_RANGE must be a prefix such as 00000000/7 (got '${TTS_DEVADDR_RANGE}')"
+for VAR in PB_HOME_ENABLE PB_FORWARDER_ENABLE CLI_AUTO_LOGIN; do
+    [[ "${!VAR}" == "true" || "${!VAR}" == "false" ]] || fail "${VAR} must be true or false (got '${!VAR}')"
+done
+# openssl only accepts two-letter country codes in certificate subjects.
+[[ "${TTS_SUBJECT_COUNTRY}" =~ ^[A-Za-z]{2}$ ]] \
+    || fail "TTS_SUBJECT_COUNTRY must be a two-letter country code (got '${TTS_SUBJECT_COUNTRY}')"
+
+# These go inside '...' in the configuration. A line break would end the string.
+QUOTED_VARS=(TTS_SERVER_NAME TTS_NOREPLY_EMAIL TTS_SENDGRID_KEY TTS_SMTP_HOST TTS_SMTP_USER
+    TTS_SMTP_PASS TTS_METRICS_PASSWORD TTS_PPROF_PASSWORD TTS_CONSOLE_SECRET
+    TTS_DEVICE_CLAIMING_SECRET PB_HOST PB_TENANT_ID PB_OAUTH_ID PB_OAUTH_SECRET)
+for VAR in "${QUOTED_VARS[@]}"; do
+    [[ "${!VAR}" != *$'\n'* ]] || fail "${VAR} cannot contain line breaks"
+    printf -v "${VAR}_YAML" '%s' "$(yaml_escape "${!VAR}")"
+done
 
 # -----------------------------------------------------------------------------
-# Create CLI config file
+# Configuration files
 # -----------------------------------------------------------------------------
 
-cp "${CLI_CONFIG_FILE}.template" "${CLI_CONFIG_FILE}"
-replace_placeholders "${CLI_CONFIG_FILE}"
+# These are only read by render, by name.
+# shellcheck disable=SC2034
+{
+    MAIL_PROVIDER="sendgrid"
+    if [[ -n "${TTS_SMTP_HOST}" ]]; then MAIL_PROVIDER="smtp"; fi
+    # Commenting out the packetbroker forwarding rule disables it.
+    PB_FORWARDER_PREFIX="#"
+    if [[ "${PB_FORWARDER_ENABLE}" == "true" ]]; then PB_FORWARDER_PREFIX=""; fi
+    BLOCK_KEY=$(stored_key cookie_block_key 32)
+    HASH_KEY=$(stored_key cookie_hash_key 64)
+    PB_TOKEN_KEY=$(stored_key pb_token_key 16)
+}
+
+COMMON_VARS=(DATA_FOLDER TTS_DOMAIN TTS_PORT)
+render ttn-lw-stack-docker.yml.template "${STACK_CONFIG_FILE}" \
+    "${COMMON_VARS[@]}" TTS_NET_ID TTS_DEVADDR_RANGE MAIL_PROVIDER PB_FORWARDER_PREFIX \
+    PB_FORWARDER_ENABLE PB_HOME_ENABLE BLOCK_KEY HASH_KEY PB_TOKEN_KEY \
+    "${QUOTED_VARS[@]/%/_YAML}"
+render .ttn-lw-cli.yml.template "${CLI_CONFIG_FILE}" "${COMMON_VARS[@]}"
+
+if [[ "${1:-}" == "--render" ]]; then
+    cat "${STACK_CONFIG_FILE}"
+    echo "---"
+    cat "${CLI_CONFIG_FILE}"
+    exit 0
+fi
+
+# -----------------------------------------------------------------------------
+# Banner
+# -----------------------------------------------------------------------------
+
+STACK_VERSION=$(ttn-lw-stack version | awk '/^Version:/ { print $2 }')
+info "------------------------------------------------------------------"
+info "The Things Stack Open Source for Docker ${IMAGE_VERSION:-dev}"
+info "Based on lorawan-stack ${STACK_VERSION}"
+info "------------------------------------------------------------------"
+info "URL:         https://${TTS_DOMAIN}:${TTS_PORT}"
+info "------------------------------------------------------------------"
+
+# -----------------------------------------------------------------------------
+# Wait for PostgreSQL
+# -----------------------------------------------------------------------------
+
+DATABASE_URI=${TTN_LW_IS_DATABASE_URI:-}
+[[ -n "${DATABASE_URI}" ]] \
+    || fail "TTN_LW_IS_DATABASE_URI is required, e.g. postgres://root:root@postgres:5432/ttn_lorawan?sslmode=disable"
+URI_PATTERN='^[a-z]+://([^@/]*@)?([^:/?]+)(:([0-9]+))?'
+[[ "${DATABASE_URI}" =~ ${URI_PATTERN} ]] \
+    || fail "TTN_LW_IS_DATABASE_URI must look like postgres://user:password@host:port/database"
+DATABASE_HOST=${BASH_REMATCH[2]}
+DATABASE_PORT=${BASH_REMATCH[4]:-5432}
+wait_for_port "${DATABASE_HOST}" "${DATABASE_PORT}" 30 \
+    || fail "PostgreSQL is not reachable at ${DATABASE_HOST}:${DATABASE_PORT}"
 
 # -----------------------------------------------------------------------------
 # Certificates
 # -----------------------------------------------------------------------------
 
-if [ -f /run/secrets/ca.pem ] && [ -f /run/secrets/cert.pem ] && [ -f /run/secrets/key.pem ]; then
+CA_FILE=${DATA_FOLDER}/ca.pem
+CA_KEY_FILE=${DATA_FOLDER}/ca-key.pem
+CERT_FILE=${DATA_FOLDER}/cert.pem
+KEY_FILE=${DATA_FOLDER}/key.pem
+# Certificates are replaced when they have less than this left.
+RENEW_SECONDS=$(( 30 * 24 * 3600 ))
 
-    cp /run/secrets/ca.pem "${DATA_FOLDER}/ca.pem"
-    cp /run/secrets/cert.pem "${DATA_FOLDER}/cert.pem"
-    cp /run/secrets/key.pem "${DATA_FOLDER}/key.pem"
+expires_soon() { ! openssl x509 -checkend "${RENEW_SECONDS}" -noout -in "$1" > /dev/null 2>&1; }
+
+# Each key and its certificate are written to a temporary folder first and moved
+# into place together, so a failure cannot leave a key that does not match its
+# certificate.
+create_ca() {
+    local tmp
+    tmp=$(mktemp -d)
+    (umask 077 && openssl req -x509 -newkey rsa:2048 -noenc -days 3650 -subj "${SUBJECT}" \
+        -keyout "${tmp}/ca-key.pem" -out "${tmp}/ca.pem" 2> /dev/null) \
+        || fail "Could not create the certificate authority"
+    chmod 644 "${tmp}/ca.pem"
+    mv "${tmp}/ca-key.pem" "${CA_KEY_FILE}"
+    mv "${tmp}/ca.pem" "${CA_FILE}"
+    rmdir "${tmp}"
+}
+
+# The server certificate, signed by the CA above. 825 days is the longest
+# validity Apple devices accept for certificates from a private CA.
+create_certificate() {
+    local san="" host hosts request tmp
+    IFS=, read -ra hosts <<< "${TTS_DOMAINS}"
+    for host in "${hosts[@]}"; do
+        if [[ "${host}" =~ ^[0-9]+(\.[0-9]+){3}$ ]]; then san+=",IP:${host}"; else san+=",DNS:${host}"; fi
+    done
+    tmp=$(mktemp -d)
+    request=$(umask 077 && openssl req -new -newkey rsa:2048 -noenc -subj "${SUBJECT}" \
+        -keyout "${tmp}/key.pem" 2> /dev/null) \
+        || fail "Could not create the server key"
+    openssl x509 -req -CA "${CA_FILE}" -CAkey "${CA_KEY_FILE}" -set_serial "0x$(openssl rand -hex 16)" \
+        -days 825 -out "${tmp}/cert.pem" -extfile <(printf '%s\n' \
+            "basicConstraints = CA:FALSE" \
+            "keyUsage = critical, digitalSignature, keyEncipherment" \
+            "extendedKeyUsage = serverAuth" \
+            "subjectAltName = ${san#,}" \
+            "subjectKeyIdentifier = hash" \
+            "authorityKeyIdentifier = keyid") <<< "${request}" 2> /dev/null \
+        || fail "Could not create the server certificate"
+    mv "${tmp}/key.pem" "${KEY_FILE}"
+    mv "${tmp}/cert.pem" "${CERT_FILE}"
+    rmdir "${tmp}"
+}
+
+if [[ -f /run/secrets/ca.pem && -f /run/secrets/cert.pem && -f /run/secrets/key.pem ]]; then
+
+    info "Using the certificates from the ca.pem, cert.pem and key.pem secrets"
+    cp /run/secrets/ca.pem "${CA_FILE}"
+    cp /run/secrets/cert.pem "${CERT_FILE}"
+    (umask 077 && cp /run/secrets/key.pem "${KEY_FILE}")
 
 else
 
-    # Certificates are rebuild on subject change
-    TTS_SUBJECT_COUNTRY=${TTS_SUBJECT_COUNTRY:-ES}
-    TTS_SUBJECT_STATE=${TTS_SUBJECT_STATE:-Catalunya}
-    TTS_SUBJECT_LOCATION=${TTS_SUBJECT_LOCATION:-Barcelona}
-    TTS_SUBJECT_ORGANIZATION=${TTS_SUBJECT_ORGANIZATION:-TTN Catalunya}
-    TTS_DOMAINS=$(echo "${TTS_DOMAIN},localhost,${IP_LAN}" | sed 's/,$//')
+    TTS_DOMAINS="${TTS_DOMAIN},localhost${IP_LAN:+,${IP_LAN}}"
+    SUBJECT=$(printf '/C=%s/ST=%s/L=%s/O=%s/CN=%s' "${TTS_SUBJECT_COUNTRY}" \
+        "$(subject_escape "${TTS_SUBJECT_STATE}")" "$(subject_escape "${TTS_SUBJECT_LOCATION}")" \
+        "$(subject_escape "${TTS_SUBJECT_ORGANIZATION}")" "${TTS_DOMAIN}")
+    # Earlier versions of the image wrote the same signature, so upgrading keeps
+    # the certificate authority that gateways already trust.
     EXPECTED_SIGNATURE="${TTS_SUBJECT_COUNTRY} ${TTS_SUBJECT_STATE} ${TTS_SUBJECT_LOCATION} ${TTS_SUBJECT_ORGANIZATION} ${TTS_DOMAINS}"
-    CURRENT_SIGNATURE=$(cat ${DATA_FOLDER}/certificates_signature 2> /dev/null)
+    CURRENT_SIGNATURE=$(cat "${DATA_FOLDER}/certificates_signature" 2> /dev/null || true)
 
-    if [ "${CURRENT_SIGNATURE}" != "${EXPECTED_SIGNATURE}" ]; then
-
-        cd /tmp || exit
-        
-        echo '{"CN":"'"${TTS_DOMAIN}"'","names":[{"C":"'"${TTS_SUBJECT_COUNTRY}"'","ST":"'"${TTS_SUBJECT_STATE}"'","L":"'"${TTS_SUBJECT_LOCATION}"'","O":"'"${TTS_SUBJECT_ORGANIZATION}"'"}],"key":{"algo":"rsa","size":2048}}' > ca.json
-        cfssl genkey -initca ca.json | cfssljson -bare ca
-
-        echo '{"CN":"'"${TTS_DOMAIN}"'","hosts":["'"$(echo "${TTS_DOMAINS}" | sed 's/,/\",\"/g')"'"],"names":[{"C":"'"${TTS_SUBJECT_COUNTRY}"'","ST":"'"${TTS_SUBJECT_STATE}"'","L":"'"${TTS_SUBJECT_LOCATION}"'","O":"'"${TTS_SUBJECT_ORGANIZATION}"'"}],"key":{"algo":"rsa","size":2048}}' > cert.json
-        cfssl gencert -hostname "${TTS_DOMAINS}" -ca ca.pem -ca-key ca-key.pem cert.json | cfssljson -bare cert
-
-        cp ca.pem "${DATA_FOLDER}/ca.pem"
-        cp ca-key.pem "${DATA_FOLDER}/ca-key.pem"
-        cp cert.pem "${DATA_FOLDER}/cert.pem"
-        cp cert-key.pem "${DATA_FOLDER}/key.pem"
-
-        chown 886:886 "${DATA_FOLDER}/cert.pem" "${DATA_FOLDER}/key.pem"
-
+    if [[ "${CURRENT_SIGNATURE}" != "${EXPECTED_SIGNATURE}" || ! -f "${CA_KEY_FILE}" ]] || expires_soon "${CA_FILE}"; then
+        info "Creating a certificate authority and server certificate for ${TTS_DOMAINS}"
+        create_ca
+        create_certificate
         echo "${EXPECTED_SIGNATURE}" > "${DATA_FOLDER}/certificates_signature"
-
-        cd - || exit
-
+        if [[ -n "${CURRENT_SIGNATURE}" ]]; then
+            warn "The certificate authority changed: Basic Station gateways need the new trust certificate (get_trust_certificate)"
+        fi
+    elif expires_soon "${CERT_FILE}"; then
+        info "Renewing the server certificate, which expires on $(openssl x509 -enddate -noout -in "${CERT_FILE}" | cut -d= -f2)"
+        create_certificate
     fi
 
 fi
@@ -231,40 +276,46 @@ fi
 # Database migration & initialization
 # -----------------------------------------------------------------------------
 
-ttn-lw-stack -c "${STACK_CONFIG_FILE}" is-db migrate
-if [ $? -eq 0 ]; then
+ttn-lw-stack -c "${STACK_CONFIG_FILE}" is-db migrate || fail "Could not migrate the database"
 
-    EXPECTED_SIGNATURE="${TTS_ADMIN_EMAIL} ${TTS_ADMIN_PASSWORD} ${TTS_CONSOLE_SECRET} ${TTS_DOMAIN}"
-    CURRENT_SIGNATURE=$( cat "${DATA_FOLDER}/database_signature" 2> /dev/null )
-    if [ "${CURRENT_SIGNATURE}" != "${EXPECTED_SIGNATURE}" ]; then
+# The admin user and OAuth clients are written again when any of these change.
+# Only a hash is kept, so the admin password is not stored in the data folder.
+SIGNATURE_FILE=${DATA_FOLDER}/database_signature
+PLAIN_SIGNATURE="${TTS_ADMIN_EMAIL} ${TTS_ADMIN_PASSWORD} ${TTS_CONSOLE_SECRET} ${TTS_DOMAIN}"
+EXPECTED_SIGNATURE=$(printf '%s' "${PLAIN_SIGNATURE}" | sha256sum | cut -d' ' -f1)
+CURRENT_SIGNATURE=$(cat "${SIGNATURE_FILE}" 2> /dev/null || true)
+if [[ "${CURRENT_SIGNATURE}" == "${PLAIN_SIGNATURE}" ]]; then
+    # Written by an earlier version of the image, with the password in clear.
+    echo "${EXPECTED_SIGNATURE}" > "${SIGNATURE_FILE}"
+elif [[ "${CURRENT_SIGNATURE}" != "${EXPECTED_SIGNATURE}" ]]; then
 
+    ttn-lw-stack -c "${STACK_CONFIG_FILE}" is-db create-admin-user \
+        --id admin \
+        --email "${TTS_ADMIN_EMAIL}" \
+        --password "${TTS_ADMIN_PASSWORD}" \
+        || fail "Could not create the admin user"
 
-        ttn-lw-stack -c "${STACK_CONFIG_FILE}" is-db create-admin-user \
-            --id admin \
-            --email "${TTS_ADMIN_EMAIL}" \
-            --password "${TTS_ADMIN_PASSWORD}"
-            
-        ttn-lw-stack -c "${STACK_CONFIG_FILE}" is-db create-oauth-client \
-            --id cli \
-            --name "Command Line Interface" \
-            --owner admin \
-            --no-secret \
-            --redirect-uri "local-callback" \
-            --redirect-uri "code"
+    ttn-lw-stack -c "${STACK_CONFIG_FILE}" is-db create-oauth-client \
+        --id cli \
+        --name "Command Line Interface" \
+        --owner admin \
+        --no-secret \
+        --redirect-uri "local-callback" \
+        --redirect-uri "code" \
+        || fail "Could not create the CLI OAuth client"
 
-        ttn-lw-stack -c "${STACK_CONFIG_FILE}" is-db create-oauth-client \
-            --id console \
-            --name "Console" \
-            --owner admin \
-            --secret "${TTS_CONSOLE_SECRET}" \
-            --redirect-uri "https://${TTS_DOMAIN}/console/oauth/callback" \
-            --redirect-uri "/console/oauth/callback" \
-            --logout-redirect-uri "https://${TTS_DOMAIN}/console" \
-            --logout-redirect-uri "/console"
+    ttn-lw-stack -c "${STACK_CONFIG_FILE}" is-db create-oauth-client \
+        --id console \
+        --name "Console" \
+        --owner admin \
+        --secret "${TTS_CONSOLE_SECRET}" \
+        --redirect-uri "https://${TTS_DOMAIN}/console/oauth/callback" \
+        --redirect-uri "/console/oauth/callback" \
+        --logout-redirect-uri "https://${TTS_DOMAIN}/console" \
+        --logout-redirect-uri "/console" \
+        || fail "Could not create the Console OAuth client"
 
-        echo "${EXPECTED_SIGNATURE}" > "${DATA_FOLDER}/database_signature"
-
-    fi
+    echo "${EXPECTED_SIGNATURE}" > "${SIGNATURE_FILE}"
 
 fi
 
@@ -272,47 +323,33 @@ fi
 # CLI auto-login
 # -----------------------------------------------------------------------------
 
-# Create admin API key and use it to login with the CLI tool
-if [ "${CLI_AUTO_LOGIN}" = "true" ]; then
-
-    # Check if there is a cached credentials file
-    if [ -f "${DATA_FOLDER}/cli_auto_login_cache" ]; then
-
-        # Copy back the cached credentials file
-        mkdir -p "${HOME_FOLDER}/.cache/ttn-lw-cli"
-        cp "${DATA_FOLDER}/cli_auto_login_cache" "${HOME_FOLDER}/.cache/ttn-lw-cli/cache"
-
-    else
-
-        # Create a new API key and credentials file
-        API_KEY=$( ttn-lw-stack -c "${STACK_CONFIG_FILE}" is-db create-user-api-key | jq '.key' )
-        mkdir -p "${HOME_FOLDER}/.cache/ttn-lw-cli"
-        echo "{\"by_id\":{\"${TTS_DOMAIN}\":{\"api_key\":${API_KEY},\"hosts\":[\"${TTS_DOMAIN}\"]}}}" >> "${HOME_FOLDER}/.cache/ttn-lw-cli/cache"
-        cp "${HOME_FOLDER}/.cache/ttn-lw-cli/cache" "${DATA_FOLDER}/cli_auto_login_cache"
-
+# An admin API key, created once and kept in the data folder, logs the CLI in.
+if [[ "${CLI_AUTO_LOGIN}" == "true" ]]; then
+    LOGIN_CACHE=${DATA_FOLDER}/cli_auto_login_cache
+    if [[ ! -f "${LOGIN_CACHE}" ]]; then
+        API_KEY=$(ttn-lw-stack -c "${STACK_CONFIG_FILE}" is-db create-user-api-key | jq -r '.key') \
+            || fail "Could not create the API key for the CLI"
+        (umask 077 && jq -n --arg host "${TTS_DOMAIN}" --arg key "${API_KEY}" \
+            '{by_id: {($host): {api_key: $key, hosts: [$host]}}}' > "${LOGIN_CACHE}")
     fi
+    mkdir -p "${HOME_FOLDER}/.cache/ttn-lw-cli"
+    cp "${LOGIN_CACHE}" "${HOME_FOLDER}/.cache/ttn-lw-cli/cache"
 fi
 
 # -----------------------------------------------------------------------------
-# Update Balena labels
+# Balena
 # -----------------------------------------------------------------------------
 
-# We populate the TC_TRUST and TC_URI for a possible Balena BasicStation service running on the same machine
-if [ -n "${BALENA_DEVICE_UUID}" ]; then
-    TC_TRUST=$( cat "${DATA_FOLDER}/ca.pem" )
-    TC_TRUST=$( echo "${TC_TRUST}" | sed "//$'\n'/g" )
-    balena_set_variable "TC_TRUST" "${TC_TRUST}"
+# For a Basic Station service on the same balena device.
+if [[ -n "${BALENA_DEVICE_UUID:-}" ]]; then
+    balena_set_variable "TC_TRUST" "$(cat "${CA_FILE}")"
     balena_set_variable "TC_URI" "wss://localhost:8887"
     balena_set_label "URL" "https://${TTS_DOMAIN}"
 fi
 
 # -----------------------------------------------------------------------------
-# Run server
+# Run
 # -----------------------------------------------------------------------------
 
-ttn-lw-stack -c "${STACK_CONFIG_FILE}" start
-
-# Do not restart so quick
-echo -e "${COLOR_ERROR}ERROR: LNS exited, waiting 15 seconds and then rebooting service.${COLOR_END}"
-sleep 15
-exit 1
+# exec, so that the stack receives the signals docker stop sends.
+exec ttn-lw-stack -c "${STACK_CONFIG_FILE}" start

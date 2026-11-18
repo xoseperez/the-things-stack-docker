@@ -1,0 +1,3 @@
+# Only the start script and its files go into the images.
+*
+!runner/

@@ -1,158 +1,162 @@
+# The Things Stack configuration, written by the start script from environment
+# variables on every start. Values in '...' come from user settings with any
+# quote doubled; the start script validates the unquoted ones.
+
 # Identity Server configuration
-# Email configuration for "{{domain}}"
+# Email configuration for "${TTS_DOMAIN}"
 is:
   email:
-    sender-name: '{{server_name}}'
-    sender-address: '{{noreply_email}}'
+    sender-name: '${TTS_SERVER_NAME_YAML}'
+    sender-address: '${TTS_NOREPLY_EMAIL_YAML}'
     network:
-      name: '{{server_name}}'
-      console-url: 'https://{{domain}}:{{port}}/console'
-      identity-server-url: 'https://{{domain}}:{{port}}/oauth'
+      name: '${TTS_SERVER_NAME_YAML}'
+      console-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/console'
+      identity-server-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/oauth'
 
-    provider: {{mail_provider}}
+    provider: ${MAIL_PROVIDER}
 
     # If sending email with Sendgrid
     # provider: sendgrid
     sendgrid:
-      api-key: '{{sendgrid_key}}'
+      api-key: '${TTS_SENDGRID_KEY_YAML}'
 
     # If sending email with SMTP
     # provider: smtp
     smtp:
-      address:  '{{smtp_host}}'
-      username: '{{smtp_user}}'
-      password: '{{smtp_pass}}'
+      address:  '${TTS_SMTP_HOST_YAML}'
+      username: '${TTS_SMTP_USER_YAML}'
+      password: '${TTS_SMTP_PASS_YAML}'
 
-  # Web UI configuration for "{{domain}}":
+  # Web UI configuration for "${TTS_DOMAIN}":
   oauth:
     ui:
-      canonical-url: 'https://{{domain}}:{{port}}/oauth'
+      canonical-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/oauth'
       is:
-        base-url: 'https://{{domain}}:{{port}}/api/v3'
+        base-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/api/v3'
 
 # HTTP server configuration
 http:
   cookie:
-    block-key: '{{block_key}}'
-    hash-key: '{{hash_key}}'
+    block-key: '${BLOCK_KEY}'
+    hash-key: '${HASH_KEY}'
   metrics:
-    password: '{{metrics_password}}'
+    password: '${TTS_METRICS_PASSWORD_YAML}'
   pprof:
-    password: '{{pprof_password}}'
+    password: '${TTS_PPROF_PASSWORD_YAML}'
 
 # If using custom certificates:
 tls:
   source: file
-  root-ca: {{data_folder}}/ca.pem
-  certificate: {{data_folder}}/cert.pem
-  key: {{data_folder}}/key.pem
-  
-# Let's encrypt for "{{domain}}"
+  root-ca: ${DATA_FOLDER}/ca.pem
+  certificate: ${DATA_FOLDER}/cert.pem
+  key: ${DATA_FOLDER}/key.pem
+
+# Let's encrypt for "${TTS_DOMAIN}"
 #tls:
 #  source: 'acme'
 #  acme:
 #    dir: '/var/lib/acme'
-#    email: '{{admin_email}}'
-#    hosts: ['{{domain}}']
-#    default-host: '{{domain}}'
+#    email: '<admin email>'
+#    hosts: ['${TTS_DOMAIN}']
+#    default-host: '${TTS_DOMAIN}'
 
 # Network Server configuration
 ns:
-  net-id: '{{net_id}}'
+  net-id: '${TTS_NET_ID}'
   dev-addr-prefixes:
-  - '{{devaddr_range}}'
+  - '${TTS_DEVADDR_RANGE}'
 
-# If Gateway Server enabled, defaults for "{{domain}}":
+# If Gateway Server enabled, defaults for "${TTS_DOMAIN}":
 gs:
   forward:
     cluster: ["00000000/0"]
-    {{pb_forwarder_prefix}}packetbroker : ["00000000/0"]
+    ${PB_FORWARDER_PREFIX}packetbroker : ["00000000/0"]
   mqtt:
-    public-address: '{{domain}}:1882'
-    public-tls-address: '{{domain}}:8882'
+    public-address: '${TTS_DOMAIN}:1882'
+    public-tls-address: '${TTS_DOMAIN}:8882'
   mqtt-v2:
-    public-address: '{{domain}}:1881'
-    public-tls-address: '{{domain}}:8881'
+    public-address: '${TTS_DOMAIN}:1881'
+    public-tls-address: '${TTS_DOMAIN}:8881'
 
-# If Gateway Configuration Server enabled, defaults for "{{domain}}":
+# If Gateway Configuration Server enabled, defaults for "${TTS_DOMAIN}":
 gcs:
   basic-station:
     default:
-      lns-uri: 'wss://{{domain}}:8887'
+      lns-uri: 'wss://${TTS_DOMAIN}:8887'
   the-things-gateway:
     default:
-      mqtt-server: 'mqtts://{{domain}}:8881'
+      mqtt-server: 'mqtts://${TTS_DOMAIN}:8881'
 
-# Web UI configuration for "{{domain}}":
+# Web UI configuration for "${TTS_DOMAIN}":
 console:
   ui:
-    canonical-url: 'https://{{domain}}:{{port}}/console'
+    canonical-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/console'
     is:
-      base-url: 'https://{{domain}}:{{port}}/api/v3'
+      base-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/api/v3'
     gs:
-      base-url: 'https://{{domain}}:{{port}}/api/v3'
+      base-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/api/v3'
     gcs:
-      base-url: 'https://{{domain}}:{{port}}/api/v3'
+      base-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/api/v3'
     ns:
-      base-url: 'https://{{domain}}:{{port}}/api/v3'
+      base-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/api/v3'
     as:
-      base-url: 'https://{{domain}}:{{port}}/api/v3'
+      base-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/api/v3'
     js:
-      base-url: 'https://{{domain}}:{{port}}/api/v3'
+      base-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/api/v3'
     qrg:
-      base-url: 'https://{{domain}}:{{port}}/api/v3'
+      base-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/api/v3'
     edtc:
-      base-url: 'https://{{domain}}:{{port}}/api/v3'
+      base-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/api/v3'
     dcs:
-      base-url: 'https://{{domain}}:{{port}}/api/v3'
+      base-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/api/v3'
 
   oauth:
-    authorize-url: 'https://{{domain}}:{{port}}/oauth/authorize'
-    token-url: 'https://{{domain}}:{{port}}/oauth/token'
-    logout-url: 'https://{{domain}}:{{port}}/oauth/logout'
+    authorize-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/oauth/authorize'
+    token-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/oauth/token'
+    logout-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/oauth/logout'
     client-id: 'console'
-    client-secret: '{{console_secret}}'
+    client-secret: '${TTS_CONSOLE_SECRET_YAML}'
 
-# If Application Server enabled, defaults for "{{domain}}":
+# If Application Server enabled, defaults for "${TTS_DOMAIN}":
 as:
   mqtt:
-    public-address: '{{domain}}:1883'
-    public-tls-address: '{{domain}}:8883'
+    public-address: '${TTS_DOMAIN}:1883'
+    public-tls-address: '${TTS_DOMAIN}:8883'
   webhooks:
     downlink:
-      public-address: '{{domain}}:1885/api/v3'
+      public-address: '${TTS_DOMAIN}:1885/api/v3'
 
-# If Device Claiming Server enabled, defaults for "{{domain}}":
+# If Device Claiming Server enabled, defaults for "${TTS_DOMAIN}":
 dcs:
   oauth:
-    authorize-url: 'https://{{domain}}:{{port}}/oauth/authorize'
-    token-url: 'https://{{domain}}:{{port}}/oauth/token'
-    logout-url: 'https://{{domain}}:{{port}}/oauth/logout'
+    authorize-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/oauth/authorize'
+    token-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/oauth/token'
+    logout-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/oauth/logout'
     client-id: 'device-claiming'
-    client-secret: '{{device_claiming_secret}}'
+    client-secret: '${TTS_DEVICE_CLAIMING_SECRET_YAML}'
   ui:
-    canonical-url: 'https://{{domain}}:{{port}}/claim'
+    canonical-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/claim'
     as:
-      base-url: 'https://{{domain}}:{{port}}/api/v3'
+      base-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/api/v3'
     dcs:
-      base-url: 'https://{{domain}}:{{port}}/api/v3'
+      base-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/api/v3'
     is:
-      base-url: 'https://{{domain}}:{{port}}/api/v3'
+      base-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/api/v3'
     ns:
-      base-url: 'https://{{domain}}:{{port}}/api/v3'
+      base-url: 'https://${TTS_DOMAIN}:${TTS_PORT}/api/v3'
 
 # Packet Broker Agent configuration
 pba:
-  data-plane-address: '{{pb_host}}'
-  net-id: '{{net_id}}'
-  tenant-id: '{{pb_tenant_id}}'
-  cluster-id: '{{domain}}'
+  data-plane-address: '${PB_HOST_YAML}'
+  net-id: '${TTS_NET_ID}'
+  tenant-id: '${PB_TENANT_ID_YAML}'
+  cluster-id: '${TTS_DOMAIN}'
   authentication-mode: 'oauth2'
   oauth2:
-    client-id: '{{pb_oauth_id}}'
-    client-secret: '{{pb_oauth_secret}}'
+    client-id: '${PB_OAUTH_ID_YAML}'
+    client-secret: '${PB_OAUTH_SECRET_YAML}'
   forwarder:
-    enable: {{pb_forwarder_enable}}
-    token-key: '{{pb_token}}'
+    enable: ${PB_FORWARDER_ENABLE}
+    token-key: '${PB_TOKEN_KEY}'
   home-network:
-    enable: {{pb_home_enable}}
+    enable: ${PB_HOME_ENABLE}

@@ -1,50 +1,29 @@
-ARG TAG
-ARG VERSION
-ARG BUILD_DATE
-ARG ARCH
-ARG REMOTE_TAG
-ARG CFSSL_ARCH=${ARCH}
+# check=skip=InvalidDefaultArgInFrom
+# The upstream version has no default here: docker-bake.hcl is its one source.
+# The Things Stack (open source) image, plus a start script that configures it
+# from environment variables. Built with docker-bake.hcl, which sets the
+# upstream version.
 
-FROM thethingsnetwork/lorawan-stack:${REMOTE_TAG:-latest}
+ARG UPSTREAM_VERSION
+FROM thethingsnetwork/lorawan-stack:${UPSTREAM_VERSION}
 
-ARG TAG
-ARG VERSION
-ARG BUILD_DATE
-ARG ARCH
-ARG REMOTE_TAG
-ARG CFSSL_ARCH
-
-# Image metadata
-LABEL maintainer="Xose Pérez <xose.perez@gmail.com>"
-LABEL org.label-schema.schema-version="1.0"
-LABEL org.label-schema.build-date=${BUILD_DATE}
-LABEL org.label-schema.name="The Things Stack LoRaWAN Network Server"
-LABEL org.label-schema.description="The Things Stack LoRaWAN Network Server"
-LABEL org.label-schema.version="${VERSION} based on ${REMOTE_TAG}"
-LABEL org.label-schema.vcs-type="Git"
-LABEL org.label-schema.vcs-url="https://github.com/xoseperez/the-things-stack-docker"
-LABEL org.label-schema.vcs-ref=${TAG}
-LABEL org.label-schema.arch=${ARCH}
-LABEL org.label-schema.license="Apache 2.0"
+ARG VERSION=dev
 
 USER root:root
 
-# Certificate creation tools
-RUN apk --update --no-cache add openssl jq
-ADD https://github.com/cloudflare/cfssl/releases/download/1.2.0/cfssl_linux-${CFSSL_ARCH} /usr/bin/cfssl
-ADD https://github.com/cloudflare/cfssl/releases/download/1.2.0/cfssljson_linux-${CFSSL_ARCH} /usr/bin/cfssljson
-RUN chmod +x /usr/bin/cfssl*
+# bash and envsubst run the start script, openssl creates the self-signed
+# certificates, and jq builds the CLI credentials and the balena API requests.
+RUN apk add --no-cache bash gettext-envsubst openssl jq
 
-# Data folder
-RUN mkdir /srv/data
-RUN chmod 777 /srv/data
-VOLUME [ "/srv/data" ]
+# Certificates, keys and markers the start script keeps across restarts.
+RUN install -d -o thethings -g thethings -m 0750 /srv/data
+VOLUME ["/srv/data"]
 
 WORKDIR /home/thethings
+COPY runner/ ./
+ENV PATH="${PATH}:/home/thethings" \
+    IMAGE_VERSION=${VERSION}
 
-COPY runner/* .
-RUN chmod +x start get_trust_certificate reset_certificates reset_database
-ENV PATH="${PATH}:/home/thethings"
 USER thethings:thethings
 
-ENTRYPOINT [ "sh", "start" ]
+ENTRYPOINT ["bash", "start"]
